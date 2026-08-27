@@ -49,7 +49,11 @@ configure_file(
 # both the executable and the test binaries can link against it.
 # ---------------------------------------------------------------------------
 add_library(fitplan_lib STATIC
-    src/config/Config.cpp)
+    src/config/Config.cpp
+    src/db/Database.cpp
+    src/db/MigrationSet.cpp
+    src/repositories/ExerciseRepository.cpp
+    src/repositories/UserRepository.cpp)
 
 target_include_directories(fitplan_lib PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -60,6 +64,7 @@ target_link_libraries(fitplan_lib
         Crow::Crow
         nlohmann_json::nlohmann_json
         spdlog::spdlog
+        SQLiteCpp
     PRIVATE
         fitplan_warnings)
 

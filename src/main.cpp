@@ -5,9 +5,14 @@
 
 #include <cstdint>
 #include <exception>
+#include <fstream>
+#include <optional>
+#include <sstream>
 #include <string>
+#include <string_view>
 
 #include "config/Config.hpp"
+#include "db/Database.hpp"
 #include "fitplan/Version.hpp"
 
 namespace {
@@ -17,6 +22,22 @@ crow::response json_response(int status_code, const nlohmann::json& body) {
     res.body = body.dump();
     res.set_header("Content-Type", "application/json");
     return res;
+}
+
+bool has_flag(int argc, char** argv, std::string_view flag) {
+    for (int i = 1; i < argc; ++i) {
+        if (flag == argv[i]) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::string read_text_file(const std::string& path) {
+    std::ifstream in(path, std::ios::binary);
+    std::ostringstream buffer;
+    buffer << in.rdbuf();
+    return buffer.str();
 }
 
 spdlog::level::level_enum to_spdlog_level(const std::string& name) {
@@ -38,7 +59,7 @@ void configure_logging(const std::string& level_name) {
 
 }  // namespace
 
-int main() {
+int main(int argc, char** argv) {
     const fitplan::Config config = fitplan::Config::from_env();
     configure_logging(config.log_level);
 
@@ -47,15 +68,38 @@ int main() {
         spdlog::warn("FITPLAN_JWT_SECRET is unset - using an insecure development secret");
     }
 
+    std::optional<fitplan::db::Database> database;
+    try {
+        database.emplace(config.database_path, config.migrations_dir);
+        spdlog::info("Database '{}' ready at schema version {}", config.database_path,
+                     database->schema_version());
+
+        if (has_flag(argc, argv, "--seed")) {
+            const std::string seed_sql = read_text_file("scripts/seed.sql");
+            if (seed_sql.empty()) {
+                spdlog::error("--seed: could not read scripts/seed.sql (run from the repo root)");
+                return 1;
+            }
+            database->connection().exec(seed_sql);
+            spdlog::info("--seed: sample data loaded");
+        }
+    } catch (const std::exception& ex) {
+        spdlog::critical("Database initialization failed: {}", ex.what());
+        return 1;
+    }
+
+    const int schema_version = database->schema_version();
+
     crow::SimpleApp app;
     app.loglevel(crow::LogLevel::Warning);
 
     CROW_ROUTE(app, "/api/health")
-    ([]() {
+    ([schema_version]() {
         const nlohmann::json body{
             {"status", "ok"},
             {"service", fitplan::kProjectName},
             {"version", fitplan::kVersion},
+            {"schema_version", schema_version},
         };
         return json_response(200, body);
     });

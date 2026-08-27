@@ -48,6 +48,7 @@ Config Config::from_env() {
     cfg.host = env_or("FITPLAN_HOST", cfg.host);
     cfg.port = env_int_or<std::uint16_t>("FITPLAN_PORT", cfg.port);
     cfg.database_path = env_or("FITPLAN_DB_PATH", cfg.database_path);
+    cfg.migrations_dir = env_or("FITPLAN_MIGRATIONS_DIR", cfg.migrations_dir);
     cfg.jwt_secret = env_or("FITPLAN_JWT_SECRET", cfg.jwt_secret);
     cfg.jwt_ttl_seconds = env_int_or<std::int64_t>("FITPLAN_JWT_TTL_SECONDS", cfg.jwt_ttl_seconds);
     cfg.log_level = env_or("FITPLAN_LOG_LEVEL", cfg.log_level);

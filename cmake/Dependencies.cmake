@@ -37,6 +37,23 @@ FetchContent_Declare(Crow
     SYSTEM)
 
 # ---------------------------------------------------------------------------
+# SQLiteCpp - RAII C++ wrapper around the SQLite C API.
+# We link the system SQLite (libsqlite3-dev) instead of the copy bundled in the
+# wrapper (SQLITECPP_INTERNAL_SQLITE=OFF): one well-known, security-patched
+# version, and a smaller build.
+# ---------------------------------------------------------------------------
+set(SQLITECPP_INTERNAL_SQLITE OFF CACHE BOOL "" FORCE)
+set(SQLITECPP_RUN_CPPLINT OFF CACHE BOOL "" FORCE)
+set(SQLITECPP_RUN_CPPCHECK OFF CACHE BOOL "" FORCE)
+set(SQLITECPP_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(SQLITECPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(SQLiteCpp
+    GIT_REPOSITORY https://github.com/SRombauts/SQLiteCpp.git
+    GIT_TAG        3.3.3
+    GIT_SHALLOW    TRUE
+    SYSTEM)
+
+# ---------------------------------------------------------------------------
 # GoogleTest - unit / integration test framework
 # ---------------------------------------------------------------------------
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -48,7 +65,7 @@ FetchContent_Declare(googletest
     SYSTEM)
 
 if(FITPLAN_BUILD_TESTS)
-    FetchContent_MakeAvailable(nlohmann_json spdlog Crow googletest)
+    FetchContent_MakeAvailable(nlohmann_json spdlog Crow SQLiteCpp googletest)
 else()
-    FetchContent_MakeAvailable(nlohmann_json spdlog Crow)
+    FetchContent_MakeAvailable(nlohmann_json spdlog Crow SQLiteCpp)
 endif()

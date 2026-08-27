@@ -1,0 +1,22 @@
+#pragma once
+
+#include <cstdint>
+#include <optional>
+
+namespace fitplan::models {
+
+// Mirrors one row of the `session_sets` table: a single set the trainee logged.
+// plan_item_id links back to what was prescribed, or std::nullopt for ad-hoc.
+struct SessionSet {
+    std::int64_t id = 0;
+    std::int64_t session_id = 0;
+    std::int64_t exercise_id = 0;
+    std::optional<std::int64_t> plan_item_id;
+    int set_number = 0;
+    std::optional<int> reps;
+    std::optional<double> weight;
+    std::optional<double> rpe;
+    bool completed = true;
+};
+
+}  // namespace fitplan::models
