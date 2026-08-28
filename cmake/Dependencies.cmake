@@ -4,6 +4,15 @@ include(FetchContent)
 set(FETCHCONTENT_QUIET OFF CACHE BOOL "" FORCE)
 
 # ---------------------------------------------------------------------------
+# libsodium - Argon2id password hashing. Installed from apt (libsodium-dev),
+# not fetched: it is a security-sensitive C library we want the distro to keep
+# patched. Found through its pkg-config file and exposed to first-party targets
+# as the imported target PkgConfig::libsodium.
+# ---------------------------------------------------------------------------
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(libsodium REQUIRED IMPORTED_TARGET libsodium)
+
+# ---------------------------------------------------------------------------
 # nlohmann/json - JSON parsing / serialization
 # ---------------------------------------------------------------------------
 set(JSON_BuildTests OFF CACHE INTERNAL "")
@@ -54,6 +63,18 @@ FetchContent_Declare(SQLiteCpp
     SYSTEM)
 
 # ---------------------------------------------------------------------------
+# jwt-cpp - header-only JSON Web Token create / verify. Uses the system OpenSSL
+# (libssl-dev) for the HMAC-SHA256 signature.
+# ---------------------------------------------------------------------------
+set(JWT_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(JWT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(jwt-cpp
+    GIT_REPOSITORY https://github.com/Thalhammer/jwt-cpp.git
+    GIT_TAG        v0.7.0
+    GIT_SHALLOW    TRUE
+    SYSTEM)
+
+# ---------------------------------------------------------------------------
 # GoogleTest - unit / integration test framework
 # ---------------------------------------------------------------------------
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -65,7 +86,7 @@ FetchContent_Declare(googletest
     SYSTEM)
 
 if(FITPLAN_BUILD_TESTS)
-    FetchContent_MakeAvailable(nlohmann_json spdlog Crow SQLiteCpp googletest)
+    FetchContent_MakeAvailable(nlohmann_json spdlog Crow SQLiteCpp jwt-cpp googletest)
 else()
-    FetchContent_MakeAvailable(nlohmann_json spdlog Crow SQLiteCpp)
+    FetchContent_MakeAvailable(nlohmann_json spdlog Crow SQLiteCpp jwt-cpp)
 endif()

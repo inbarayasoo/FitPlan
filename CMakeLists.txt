@@ -50,10 +50,15 @@ configure_file(
 # ---------------------------------------------------------------------------
 add_library(fitplan_lib STATIC
     src/config/Config.cpp
+    src/controllers/AuthController.cpp
     src/db/Database.cpp
     src/db/MigrationSet.cpp
+    src/dto/AuthDto.cpp
     src/repositories/ExerciseRepository.cpp
-    src/repositories/UserRepository.cpp)
+    src/repositories/UserRepository.cpp
+    src/services/AuthService.cpp
+    src/util/Hashing.cpp
+    src/util/Jwt.cpp)
 
 target_include_directories(fitplan_lib PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -66,7 +71,9 @@ target_link_libraries(fitplan_lib
         spdlog::spdlog
         SQLiteCpp
     PRIVATE
-        fitplan_warnings)
+        fitplan_warnings
+        PkgConfig::libsodium
+        jwt-cpp::jwt-cpp)
 
 # ---------------------------------------------------------------------------
 # Server executable

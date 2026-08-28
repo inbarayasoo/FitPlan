@@ -11,9 +11,14 @@
 #include <string>
 #include <string_view>
 
+#include "app/App.hpp"
 #include "config/Config.hpp"
+#include "controllers/AuthController.hpp"
 #include "db/Database.hpp"
 #include "fitplan/Version.hpp"
+#include "middleware/JwtAuthMiddleware.hpp"
+#include "repositories/UserRepository.hpp"
+#include "services/AuthService.hpp"
 
 namespace {
 
@@ -90,8 +95,15 @@ int main(int argc, char** argv) {
 
     const int schema_version = database->schema_version();
 
-    crow::SimpleApp app;
+    // Data-access and business layers, built once and shared by every request.
+    fitplan::repositories::UserRepository users(database->connection());
+    fitplan::services::AuthService auth(users, config.jwt_secret,
+                                        config.jwt_ttl_seconds);
+
+    fitplan::app::FitPlanApp app;
     app.loglevel(crow::LogLevel::Warning);
+    app.get_middleware<fitplan::middleware::JwtAuthMiddleware>().secret =
+        config.jwt_secret;
 
     CROW_ROUTE(app, "/api/health")
     ([schema_version]() {
@@ -103,6 +115,8 @@ int main(int argc, char** argv) {
         };
         return json_response(200, body);
     });
+
+    fitplan::controllers::register_auth_routes(app, auth);
 
     app.bindaddr(config.host).port(config.port);
     if (config.thread_count > 0) {

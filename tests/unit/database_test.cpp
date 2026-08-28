@@ -29,18 +29,26 @@ protected:
          ::testing::UnitTest::GetInstance()->current_test_info()->name() + ".db");
 };
 
-TEST_F(DatabaseTest, AppliesTheInitialMigration) {
+TEST_F(DatabaseTest, AppliesEveryMigration) {
     Database db(path(), migrations_dir());
 
-    EXPECT_EQ(db.schema_version(), 1);
+    // Bump this each time a migration file is added under src/db/migrations.
+    EXPECT_EQ(db.schema_version(), 2);
 
-    SQLite::Statement q(
+    SQLite::Statement tables(
         db.connection(),
         "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name IN "
         "('users', 'coach_trainees', 'exercises', 'workout_plans', 'plan_items', "
         "'workout_sessions', 'session_sets')");
-    ASSERT_TRUE(q.executeStep());
-    EXPECT_EQ(q.getColumn(0).getInt(), 7);
+    ASSERT_TRUE(tables.executeStep());
+    EXPECT_EQ(tables.getColumn(0).getInt(), 7);
+
+    // Migration 002 added users.auth_provider with a 'local' default.
+    SQLite::Statement col(
+        db.connection(),
+        "SELECT count(*) FROM pragma_table_info('users') WHERE name = 'auth_provider'");
+    ASSERT_TRUE(col.executeStep());
+    EXPECT_EQ(col.getColumn(0).getInt(), 1);
 }
 
 TEST_F(DatabaseTest, EnablesForeignKeyEnforcement) {
@@ -54,11 +62,12 @@ TEST_F(DatabaseTest, EnablesForeignKeyEnforcement) {
 TEST_F(DatabaseTest, IsIdempotentAcrossRestarts) {
     { Database first(path(), migrations_dir()); }
 
-    // Opening the same file again must not try to re-run migration 001
-    // (which would fail with "table already exists").
+    // Opening the same file again must not try to re-run migrations that have
+    // already been applied (which would fail with "table already exists" /
+    // "duplicate column").
     EXPECT_NO_THROW({
         Database second(path(), migrations_dir());
-        EXPECT_EQ(second.schema_version(), 1);
+        EXPECT_EQ(second.schema_version(), 2);
     });
 }
 
