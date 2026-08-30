@@ -119,9 +119,6 @@ PlanWithItems PlanService::assign_plan(std::int64_t coach_id,
                          items_.list_by_plan(plan_id)};
 }
 
-// ===========================================================================
-//  Already written for you - these compose the pieces above.
-// ===========================================================================
 
 PlanWithItems PlanService::update_plan(std::int64_t coach_id,
                                        std::int64_t plan_id,
