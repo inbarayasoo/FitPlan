@@ -77,6 +77,19 @@ std::vector<models::WorkoutPlan> PlanRepository::list_by_coach(
     return result;
 }
 
+std::optional<models::WorkoutPlan> PlanRepository::find_active_for_trainee(
+    std::int64_t trainee_id) {
+    SQLite::Statement stmt(
+        db_, std::string("SELECT ") + kSelectColumns +
+                 " FROM workout_plans WHERE trainee_id = ? AND is_active = 1 "
+                 "ORDER BY id DESC LIMIT 1");
+    stmt.bind(1, trainee_id);
+    if (!stmt.executeStep()) {
+        return std::nullopt;
+    }
+    return row_to_plan(stmt);
+}
+
 bool PlanRepository::update(const models::WorkoutPlan& p) {
     SQLite::Statement stmt(
         db_, "UPDATE workout_plans SET name = ?, notes = ? WHERE id = ?");

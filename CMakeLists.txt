@@ -53,20 +53,28 @@ add_library(fitplan_lib STATIC
     src/controllers/AuthController.cpp
     src/controllers/ExerciseController.cpp
     src/controllers/PlanController.cpp
+    src/controllers/ProgressController.cpp
+    src/controllers/SessionController.cpp
     src/controllers/TraineeController.cpp
     src/db/Database.cpp
     src/db/MigrationSet.cpp
     src/dto/AuthDto.cpp
     src/dto/ExerciseDto.cpp
     src/dto/PlanDto.cpp
+    src/dto/ProgressDto.cpp
+    src/dto/SessionDto.cpp
     src/dto/TraineeDto.cpp
     src/repositories/CoachTraineeRepository.cpp
     src/repositories/ExerciseRepository.cpp
     src/repositories/PlanItemRepository.cpp
     src/repositories/PlanRepository.cpp
+    src/repositories/SessionRepository.cpp
+    src/repositories/SessionSetRepository.cpp
     src/repositories/UserRepository.cpp
     src/services/AuthService.cpp
     src/services/PlanService.cpp
+    src/services/ProgressService.cpp
+    src/services/SessionService.cpp
     src/util/Hashing.cpp
     src/util/Jwt.cpp
     src/util/Validation.cpp)

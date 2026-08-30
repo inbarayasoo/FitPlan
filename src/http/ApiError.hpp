@@ -9,6 +9,7 @@
 #include "http/Problem.hpp"
 #include "services/AuthError.hpp"
 #include "services/PlanError.hpp"
+#include "services/SessionError.hpp"
 
 namespace fitplan::http {
 
@@ -78,6 +79,18 @@ inline crow::response problem_response_for(const services::PlanError& err) {
     return problem_response(500, "Internal server error", "unhandled error kind");
 }
 
+inline crow::response problem_response_for(const services::SessionError& err) {
+    switch (err.kind()) {
+        case services::SessionErrorKind::kInvalidInput:
+            return problem_response(400, "Invalid request", err.what());
+        case services::SessionErrorKind::kNotFound:
+            return problem_response(404, "Not found", err.what());
+        case services::SessionErrorKind::kForbidden:
+            return problem_response(403, "Forbidden", err.what());
+    }
+    return problem_response(500, "Internal server error", "unhandled error kind");
+}
+
 // The one call a route's `catch (const std::exception&)` needs: dispatch on the
 // dynamic type to the right mapper, or fall back to 500 for anything unforeseen.
 inline crow::response problem_response_for(const std::exception& ex) {
@@ -89,6 +102,9 @@ inline crow::response problem_response_for(const std::exception& ex) {
     }
     if (const auto* plan = dynamic_cast<const services::PlanError*>(&ex)) {
         return problem_response_for(*plan);
+    }
+    if (const auto* session = dynamic_cast<const services::SessionError*>(&ex)) {
+        return problem_response_for(*session);
     }
     return problem_response(500, "Internal server error", ex.what());
 }
