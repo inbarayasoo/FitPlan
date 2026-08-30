@@ -51,14 +51,25 @@ configure_file(
 add_library(fitplan_lib STATIC
     src/config/Config.cpp
     src/controllers/AuthController.cpp
+    src/controllers/ExerciseController.cpp
+    src/controllers/PlanController.cpp
+    src/controllers/TraineeController.cpp
     src/db/Database.cpp
     src/db/MigrationSet.cpp
     src/dto/AuthDto.cpp
+    src/dto/ExerciseDto.cpp
+    src/dto/PlanDto.cpp
+    src/dto/TraineeDto.cpp
+    src/repositories/CoachTraineeRepository.cpp
     src/repositories/ExerciseRepository.cpp
+    src/repositories/PlanItemRepository.cpp
+    src/repositories/PlanRepository.cpp
     src/repositories/UserRepository.cpp
     src/services/AuthService.cpp
+    src/services/PlanService.cpp
     src/util/Hashing.cpp
-    src/util/Jwt.cpp)
+    src/util/Jwt.cpp
+    src/util/Validation.cpp)
 
 target_include_directories(fitplan_lib PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src"

@@ -14,11 +14,19 @@
 #include "app/App.hpp"
 #include "config/Config.hpp"
 #include "controllers/AuthController.hpp"
+#include "controllers/ExerciseController.hpp"
+#include "controllers/PlanController.hpp"
+#include "controllers/TraineeController.hpp"
 #include "db/Database.hpp"
 #include "fitplan/Version.hpp"
 #include "middleware/JwtAuthMiddleware.hpp"
+#include "repositories/CoachTraineeRepository.hpp"
+#include "repositories/ExerciseRepository.hpp"
+#include "repositories/PlanItemRepository.hpp"
+#include "repositories/PlanRepository.hpp"
 #include "repositories/UserRepository.hpp"
 #include "services/AuthService.hpp"
+#include "services/PlanService.hpp"
 
 namespace {
 
@@ -97,8 +105,15 @@ int main(int argc, char** argv) {
 
     // Data-access and business layers, built once and shared by every request.
     fitplan::repositories::UserRepository users(database->connection());
+    fitplan::repositories::ExerciseRepository exercises(database->connection());
+    fitplan::repositories::PlanRepository plans_repo(database->connection());
+    fitplan::repositories::PlanItemRepository plan_items(database->connection());
+    fitplan::repositories::CoachTraineeRepository roster(database->connection());
+
     fitplan::services::AuthService auth(users, config.jwt_secret,
                                         config.jwt_ttl_seconds);
+    fitplan::services::PlanService plan_service(database->connection(), plans_repo,
+                                                plan_items, roster, exercises);
 
     fitplan::app::FitPlanApp app;
     app.loglevel(crow::LogLevel::Warning);
@@ -117,6 +132,9 @@ int main(int argc, char** argv) {
     });
 
     fitplan::controllers::register_auth_routes(app, auth);
+    fitplan::controllers::register_exercise_routes(app, exercises);
+    fitplan::controllers::register_plan_routes(app, plan_service);
+    fitplan::controllers::register_trainee_routes(app, users, roster);
 
     app.bindaddr(config.host).port(config.port);
     if (config.thread_count > 0) {

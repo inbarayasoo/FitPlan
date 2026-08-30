@@ -10,13 +10,17 @@ set(FITPLAN_TEST_MIGRATIONS_DEFINE
 # ---------------------------------------------------------------------------
 add_executable(fitplan_unit_tests
     unit/auth_service_test.cpp
+    unit/coach_trainee_repository_test.cpp
     unit/config_test.cpp
     unit/database_test.cpp
     unit/exercise_repository_test.cpp
     unit/hashing_test.cpp
+    unit/plan_item_repository_test.cpp
+    unit/plan_repository_test.cpp
     unit/jwt_auth_middleware_test.cpp
     unit/jwt_test.cpp
-    unit/user_repository_test.cpp)
+    unit/user_repository_test.cpp
+    unit/validation_test.cpp)
 
 target_link_libraries(fitplan_unit_tests PRIVATE
     fitplan_lib
@@ -36,7 +40,9 @@ gtest_discover_tests(fitplan_unit_tests
 find_package(Threads REQUIRED)
 
 add_executable(fitplan_integration_tests
-    integration/auth_flow_test.cpp)
+    integration/auth_flow_test.cpp
+    integration/exercise_flow_test.cpp
+    integration/plan_flow_test.cpp)
 
 target_link_libraries(fitplan_integration_tests PRIVATE
     fitplan_lib
