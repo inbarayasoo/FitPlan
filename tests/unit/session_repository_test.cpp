@@ -121,6 +121,22 @@ TEST_F(SessionRepositoryTest, SessionSetsRoundTripAndDeleteBySession) {
     EXPECT_EQ(sets_.list_by_session(session.id).size(), 2u);
     EXPECT_EQ(sets_.delete_by_session(session.id), 2);
     EXPECT_TRUE(sets_.list_by_session(session.id).empty());
+
+    EXPECT_EQ(saved.exercise_name, "Back Squat");  // filled by the JOIN
+}
+
+TEST_F(SessionRepositoryTest, RemoveDeletesTheSessionAndCascadesItsSets) {
+    const WorkoutSession session = sessions_.create(sample());
+    SessionSet set;
+    set.session_id = session.id;
+    set.exercise_id = 1;
+    set.set_number = 1;
+    sets_.create(set);
+
+    EXPECT_TRUE(sessions_.remove(session.id));
+    EXPECT_FALSE(sessions_.find_by_id(session.id).has_value());
+    EXPECT_TRUE(sets_.list_by_session(session.id).empty());  // ON DELETE CASCADE
+    EXPECT_FALSE(sessions_.remove(session.id));              // already gone
 }
 
 }  // namespace

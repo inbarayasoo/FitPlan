@@ -7,13 +7,18 @@ namespace fitplan::repositories {
 
 namespace {
 
+// Qualified with the `ss` alias because every read JOINs `exercises e` for the
+// exercise name, and both tables have an `id` column.
 constexpr const char* kSelectColumns =
-    "id, session_id, exercise_id, plan_item_id, set_number, reps, weight, rpe, "
-    "completed";
+    "ss.id, ss.session_id, ss.exercise_id, ss.plan_item_id, ss.set_number, "
+    "ss.reps, ss.weight, ss.rpe, ss.completed, e.name";
+
+constexpr const char* kFromJoin =
+    " FROM session_sets ss JOIN exercises e ON e.id = ss.exercise_id";
 
 // Column order must match kSelectColumns:
 //   0 id  1 session_id  2 exercise_id  3 plan_item_id  4 set_number  5 reps
-//   6 weight  7 rpe  8 completed
+//   6 weight  7 rpe  8 completed  9 exercise name
 models::SessionSet row_to_set(SQLite::Statement& stmt) {
     models::SessionSet s;
     s.id = stmt.getColumn(0).getInt64();
@@ -26,6 +31,7 @@ models::SessionSet row_to_set(SQLite::Statement& stmt) {
     if (!stmt.getColumn(6).isNull()) s.weight = stmt.getColumn(6).getDouble();
     if (!stmt.getColumn(7).isNull()) s.rpe = stmt.getColumn(7).getDouble();
     s.completed = stmt.getColumn(8).getInt() != 0;
+    s.exercise_name = stmt.getColumn(9).getString();
     return s;
 }
 
@@ -59,7 +65,7 @@ models::SessionSet SessionSetRepository::create(const models::SessionSet& set) {
 
     const std::int64_t new_id = db_.getLastInsertRowid();
     SQLite::Statement back(db_, std::string("SELECT ") + kSelectColumns +
-                                   " FROM session_sets WHERE id = ?");
+                                   kFromJoin + " WHERE ss.id = ?");
     back.bind(1, new_id);
     back.executeStep();
     return row_to_set(back);
@@ -68,8 +74,9 @@ models::SessionSet SessionSetRepository::create(const models::SessionSet& set) {
 std::vector<models::SessionSet> SessionSetRepository::list_by_session(
     std::int64_t session_id) {
     SQLite::Statement stmt(db_, std::string("SELECT ") + kSelectColumns +
-                                    " FROM session_sets WHERE session_id = ? "
-                                    "ORDER BY set_number ASC, id ASC");
+                                    kFromJoin +
+                                    " WHERE ss.session_id = ? "
+                                    "ORDER BY ss.set_number ASC, ss.id ASC");
     stmt.bind(1, session_id);
 
     std::vector<models::SessionSet> result;

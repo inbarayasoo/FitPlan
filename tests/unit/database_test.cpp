@@ -33,15 +33,15 @@ TEST_F(DatabaseTest, AppliesEveryMigration) {
     Database db(path(), migrations_dir());
 
     // Bump this each time a migration file is added under src/db/migrations.
-    EXPECT_EQ(db.schema_version(), 2);
+    EXPECT_EQ(db.schema_version(), 3);
 
     SQLite::Statement tables(
         db.connection(),
         "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name IN "
         "('users', 'coach_trainees', 'exercises', 'workout_plans', 'plan_items', "
-        "'workout_sessions', 'session_sets')");
+        "'workout_sessions', 'session_sets', 'exercise_notes')");
     ASSERT_TRUE(tables.executeStep());
-    EXPECT_EQ(tables.getColumn(0).getInt(), 7);
+    EXPECT_EQ(tables.getColumn(0).getInt(), 8);
 
     // Migration 002 added users.auth_provider with a 'local' default.
     SQLite::Statement col(
@@ -67,7 +67,7 @@ TEST_F(DatabaseTest, IsIdempotentAcrossRestarts) {
     // "duplicate column").
     EXPECT_NO_THROW({
         Database second(path(), migrations_dir());
-        EXPECT_EQ(second.schema_version(), 2);
+        EXPECT_EQ(second.schema_version(), 3);
     });
 }
 

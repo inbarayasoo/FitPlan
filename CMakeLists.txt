@@ -52,6 +52,7 @@ add_library(fitplan_lib STATIC
     src/config/Config.cpp
     src/controllers/AuthController.cpp
     src/controllers/ExerciseController.cpp
+    src/controllers/ExerciseNoteController.cpp
     src/controllers/PlanController.cpp
     src/controllers/ProgressController.cpp
     src/controllers/SessionController.cpp
@@ -60,11 +61,13 @@ add_library(fitplan_lib STATIC
     src/db/MigrationSet.cpp
     src/dto/AuthDto.cpp
     src/dto/ExerciseDto.cpp
+    src/dto/ExerciseNoteDto.cpp
     src/dto/PlanDto.cpp
     src/dto/ProgressDto.cpp
     src/dto/SessionDto.cpp
     src/dto/TraineeDto.cpp
     src/repositories/CoachTraineeRepository.cpp
+    src/repositories/ExerciseNoteRepository.cpp
     src/repositories/ExerciseRepository.cpp
     src/repositories/PlanItemRepository.cpp
     src/repositories/PlanRepository.cpp

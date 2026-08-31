@@ -62,4 +62,14 @@ TEST_F(CoachTraineeRepositoryTest, ListTraineesIsScopedAndNewestFirst) {
     EXPECT_EQ(repo_.list_trainees(coach_b_).size(), 1u);
 }
 
+TEST_F(CoachTraineeRepositoryTest, UnlinkRemovesOnlyThatPair) {
+    repo_.link(coach_a_, trainee_1_);
+    repo_.link(coach_a_, trainee_2_);
+
+    EXPECT_TRUE(repo_.unlink(coach_a_, trainee_1_));   // link existed, removed
+    EXPECT_FALSE(repo_.unlink(coach_a_, trainee_1_));  // nothing left to remove
+    EXPECT_FALSE(repo_.is_linked(coach_a_, trainee_1_));
+    EXPECT_TRUE(repo_.is_linked(coach_a_, trainee_2_));  // the other pair stands
+}
+
 }  // namespace

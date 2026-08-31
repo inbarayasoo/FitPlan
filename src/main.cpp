@@ -15,6 +15,7 @@
 #include "config/Config.hpp"
 #include "controllers/AuthController.hpp"
 #include "controllers/ExerciseController.hpp"
+#include "controllers/ExerciseNoteController.hpp"
 #include "controllers/PlanController.hpp"
 #include "controllers/ProgressController.hpp"
 #include "controllers/SessionController.hpp"
@@ -23,6 +24,7 @@
 #include "fitplan/Version.hpp"
 #include "middleware/JwtAuthMiddleware.hpp"
 #include "repositories/CoachTraineeRepository.hpp"
+#include "repositories/ExerciseNoteRepository.hpp"
 #include "repositories/ExerciseRepository.hpp"
 #include "repositories/PlanItemRepository.hpp"
 #include "repositories/PlanRepository.hpp"
@@ -114,6 +116,8 @@ int main(int argc, char** argv) {
     fitplan::repositories::PlanRepository plans_repo(database->connection());
     fitplan::repositories::PlanItemRepository plan_items(database->connection());
     fitplan::repositories::CoachTraineeRepository roster(database->connection());
+    fitplan::repositories::ExerciseNoteRepository exercise_notes(
+        database->connection());
     fitplan::repositories::SessionRepository sessions_repo(database->connection());
     fitplan::repositories::SessionSetRepository session_sets(
         database->connection());
@@ -147,7 +151,25 @@ int main(int argc, char** argv) {
     fitplan::controllers::register_plan_routes(app, plan_service);
     fitplan::controllers::register_trainee_routes(app, users, roster);
     fitplan::controllers::register_session_routes(app, session_service);
-    fitplan::controllers::register_progress_routes(app, session_service, roster);
+    fitplan::controllers::register_progress_routes(app, session_service, roster,
+                                                   exercises);
+    fitplan::controllers::register_exercise_note_routes(
+        app, exercise_notes, plans_repo, plan_items);
+
+    // Static frontend. Every non-API GET resolves to a file under web_dir, with
+    // "/" mapping to index.html. crow::response::set_static_file_info() rejects
+    // "../" traversal and fills in Content-Type / Content-Length / 404 for us.
+    const std::string web_dir = config.web_dir;
+    CROW_ROUTE(app, "/")
+    ([web_dir](const crow::request&, crow::response& res) {
+        res.set_static_file_info(web_dir + "/index.html");
+        res.end();
+    });
+    CROW_ROUTE(app, "/<path>")
+    ([web_dir](const crow::request&, crow::response& res, const std::string& asset) {
+        res.set_static_file_info(web_dir + "/" + asset);
+        res.end();
+    });
 
     app.bindaddr(config.host).port(config.port);
     if (config.thread_count > 0) {

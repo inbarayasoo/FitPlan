@@ -145,6 +145,16 @@ TEST_F(PlanFlowTest, AttachTraineeByEmail) {
     auto roster_b = req("GET", "/api/trainees", "", coach_b_);
     EXPECT_EQ(roster_b.status, 200);
     EXPECT_EQ(roster_b.body.find("t1@it.com"), std::string::npos);
+
+    // Remove t1 from A's roster; the second delete 404s, t2 is untouched.
+    const std::string t1_path = "/api/trainees/" + std::to_string(t1_id_);
+    EXPECT_EQ(req("DELETE", t1_path, "", coach_a_).status, 204);
+    EXPECT_EQ(req("DELETE", t1_path, "", coach_a_).status, 404);
+    EXPECT_EQ(req("DELETE", t1_path, "", t2_).status, 403);  // trainees can't
+
+    auto roster_after = req("GET", "/api/trainees", "", coach_a_);
+    EXPECT_EQ(roster_after.body.find("t1@it.com"), std::string::npos);
+    EXPECT_NE(roster_after.body.find("t2@it.com"), std::string::npos);
 }
 
 TEST_F(PlanFlowTest, CreateReadListAndCrossCoachIsolation) {
@@ -167,6 +177,12 @@ TEST_F(PlanFlowTest, CreateReadListAndCrossCoachIsolation) {
 
     EXPECT_EQ(req("GET", path, "", coach_b_).status, 404);
     EXPECT_EQ(req("PUT", path, plan_body("hijack"), coach_b_).status, 404);
+
+    EXPECT_EQ(req("DELETE", path, "", coach_b_).status, 404);  // not coach B's
+    EXPECT_EQ(req("DELETE", path, "", t1_).status, 403);       // trainees can't
+    EXPECT_EQ(req("DELETE", path, "", coach_a_).status, 204);  // owner deletes
+    EXPECT_EQ(req("GET", path, "", coach_a_).status, 404);     // and it is gone
+    EXPECT_EQ(req("DELETE", path, "", coach_a_).status, 404);  // nothing to redo
 }
 
 TEST_F(PlanFlowTest, CreateRejectsRosterAndOwnershipAndValidationFailures) {

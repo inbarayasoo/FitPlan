@@ -56,10 +56,8 @@ PlanWithItems SessionService::active_plan_for(std::int64_t trainee_id) {
     return PlanWithItems{*plan, std::move(items)};
 }
 
-SessionWithSets SessionService::log_session(std::int64_t trainee_id,
-                                            const SessionInput& in) {
-    check_status(in.status);
-
+void SessionService::validate_sets(std::int64_t trainee_id,
+                                   const std::vector<SessionSetInput>& sets) {
     // plan_item_ids that belong to the trainee's active plan; a per-set link is
     // only allowed to point at one of these.
     std::set<std::int64_t> active_items;
@@ -70,7 +68,7 @@ SessionWithSets SessionService::log_session(std::int64_t trainee_id,
         }
     }
 
-    for (const SessionSetInput& s : in.sets) {
+    for (const SessionSetInput& s : sets) {
         if (!exercises_.find_by_id(s.exercise_id)) {
             throw SessionError(SessionErrorKind::kInvalidInput,
                                "a set references an unknown exercise_id");
@@ -93,6 +91,30 @@ SessionWithSets SessionService::log_session(std::int64_t trainee_id,
                                "rpe must be between 0 and 10");
         }
     }
+}
+
+void SessionService::write_sets(std::int64_t session_id,
+                                const std::vector<SessionSetInput>& sets) {
+    session_sets_.delete_by_session(session_id);
+    int set_number = 1;
+    for (const SessionSetInput& s : sets) {
+        models::SessionSet row;
+        row.session_id = session_id;
+        row.exercise_id = s.exercise_id;
+        row.plan_item_id = s.plan_item_id;
+        row.set_number = set_number++;
+        row.reps = s.reps;
+        row.weight = s.weight;
+        row.rpe = s.rpe;
+        row.completed = s.completed;
+        session_sets_.create(row);
+    }
+}
+
+SessionWithSets SessionService::log_session(std::int64_t trainee_id,
+                                            const SessionInput& in) {
+    check_status(in.status);
+    validate_sets(trainee_id, in.sets);
 
     SQLite::Transaction tx(db_);
 
@@ -104,19 +126,7 @@ SessionWithSets SessionService::log_session(std::int64_t trainee_id,
     header.notes = in.notes;
     const models::WorkoutSession saved = sessions_.create(header);
 
-    int set_number = 1;
-    for (const SessionSetInput& s : in.sets) {
-        models::SessionSet row;
-        row.session_id = saved.id;
-        row.exercise_id = s.exercise_id;
-        row.plan_item_id = s.plan_item_id;
-        row.set_number = set_number++;
-        row.reps = s.reps;
-        row.weight = s.weight;
-        row.rpe = s.rpe;
-        row.completed = s.completed;
-        session_sets_.create(row);
-    }
+    write_sets(saved.id, in.sets);
 
     tx.commit();
 
@@ -153,10 +163,25 @@ SessionWithSets SessionService::update_session(std::int64_t trainee_id,
     if (patch.set_notes) {
         session.notes = patch.notes;
     }
+    if (patch.set_sets) {
+        validate_sets(trainee_id, patch.sets);
+    }
+
+    SQLite::Transaction tx(db_);
     sessions_.update(session);
+    if (patch.set_sets) {
+        write_sets(session_id, patch.sets);
+    }
+    tx.commit();
 
     return SessionWithSets{sessions_.find_by_id(session_id).value(),
                            session_sets_.list_by_session(session_id)};
+}
+
+void SessionService::delete_session(std::int64_t trainee_id,
+                                    std::int64_t session_id) {
+    owned_session_or_throw(trainee_id, session_id);
+    sessions_.remove(session_id);
 }
 
 std::vector<LoggedSet> SessionService::logged_sets_for(std::int64_t trainee_id) {

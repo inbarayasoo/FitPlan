@@ -13,6 +13,7 @@ add_executable(fitplan_unit_tests
     unit/coach_trainee_repository_test.cpp
     unit/config_test.cpp
     unit/database_test.cpp
+    unit/exercise_note_repository_test.cpp
     unit/exercise_repository_test.cpp
     unit/hashing_test.cpp
     unit/plan_item_repository_test.cpp
@@ -45,6 +46,7 @@ find_package(Threads REQUIRED)
 add_executable(fitplan_integration_tests
     integration/auth_flow_test.cpp
     integration/exercise_flow_test.cpp
+    integration/exercise_note_flow_test.cpp
     integration/plan_flow_test.cpp
     integration/session_flow_test.cpp)
 

@@ -50,7 +50,7 @@ protected:
         fitplan::controllers::register_trainee_routes(app_, users_, roster_);
         fitplan::controllers::register_session_routes(app_, session_svc_);
         fitplan::controllers::register_progress_routes(app_, session_svc_,
-                                                       roster_);
+                                                       roster_, exercises_);
         app_.bindaddr("127.0.0.1").port(0);
         server_ = std::thread([this] { app_.run(); });
         app_.wait_for_server_start();
@@ -194,10 +194,11 @@ TEST_F(SessionFlowTest, MyPlanIs404WhenNothingActive) {
     EXPECT_EQ(req("GET", "/api/my/plan", "", other_).status, 404);
 }
 
-TEST_F(SessionFlowTest, LogListAndPatchASession) {
+TEST_F(SessionFlowTest, LogListPatchAndDeleteASession) {
     auto logged = req("POST", "/api/my/sessions", log_body_last_week(), trainee_);
     ASSERT_EQ(logged.status, 201) << logged.body;
     EXPECT_NE(logged.body.find(R"("set_number":5)"), std::string::npos);
+    EXPECT_NE(logged.body.find(R"("exercise_name":)"), std::string::npos);
     const long long sid = json_number(logged.body, "id");
 
     auto list = req("GET", "/api/my/sessions", "", trainee_);
@@ -210,11 +211,43 @@ TEST_F(SessionFlowTest, LogListAndPatchASession) {
     EXPECT_NE(patched.body.find(R"("status":"in_progress")"), std::string::npos);
     EXPECT_NE(patched.body.find(R"("notes":"hard")"), std::string::npos);
 
+    // PATCH can also replace the whole set list; numbering restarts at 1.
+    auto reset = req("PATCH", "/api/my/sessions/" + std::to_string(sid),
+                     R"({"sets":[{"exercise_id":)" + std::to_string(ex1_) +
+                         R"(,"plan_item_id":)" + std::to_string(item1_) +
+                         R"(,"reps":3,"weight":120}]})",
+                     trainee_);
+    ASSERT_EQ(reset.status, 200) << reset.body;
+    EXPECT_NE(reset.body.find(R"("reps":3)"), std::string::npos);
+    EXPECT_EQ(reset.body.find(R"("set_number":5)"), std::string::npos);
+
+    // a replacement set pointing off the active plan is rejected
+    EXPECT_EQ(req("PATCH", "/api/my/sessions/" + std::to_string(sid),
+                  R"({"sets":[{"exercise_id":)" + std::to_string(ex1_) +
+                      R"(,"plan_item_id":99999}]})",
+                  trainee_)
+                  .status,
+              403);
+
     // another trainee cannot patch it
     EXPECT_EQ(req("PATCH", "/api/my/sessions/" + std::to_string(sid),
                   R"({"status":"completed"})", other_)
                   .status,
               404);
+
+    // delete: not the owner => 404, owner => 204, then it is gone
+    EXPECT_EQ(
+        req("DELETE", "/api/my/sessions/" + std::to_string(sid), "", other_)
+            .status,
+        404);
+    EXPECT_EQ(
+        req("DELETE", "/api/my/sessions/" + std::to_string(sid), "", trainee_)
+            .status,
+        204);
+    EXPECT_EQ(
+        req("DELETE", "/api/my/sessions/" + std::to_string(sid), "", trainee_)
+            .status,
+        404);
 }
 
 TEST_F(SessionFlowTest, ProgressNumbersAddUp) {

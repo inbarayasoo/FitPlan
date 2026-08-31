@@ -116,4 +116,10 @@ int PlanRepository::deactivate_all_for_trainee(std::int64_t trainee_id) {
     return stmt.exec();
 }
 
+bool PlanRepository::remove(std::int64_t id) {
+    SQLite::Statement stmt(db_, "DELETE FROM workout_plans WHERE id = ?");
+    stmt.bind(1, id);
+    return stmt.exec() > 0;
+}
+
 }  // namespace fitplan::repositories

@@ -13,6 +13,7 @@ namespace fitplan::dto {
 // Best-e1RM time series for a single exercise.
 struct ExerciseE1rmSeries {
     std::int64_t exercise_id = 0;
+    std::string exercise_name;  // looked up by the controller for display
     std::vector<services::SeriesPoint> series;
 };
 

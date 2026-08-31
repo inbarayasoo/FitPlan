@@ -13,6 +13,9 @@ struct PlanItem {
     std::int64_t id = 0;
     std::int64_t plan_id = 0;
     std::int64_t exercise_id = 0;
+    // The referenced exercise's name. Filled by the repository on every read
+    // (a JOIN to `exercises`); ignored on write - `exercise_id` is the FK.
+    std::string exercise_name;
     int order_index = 0;
     std::optional<std::string> day_label;
     std::optional<int> target_sets;

@@ -85,6 +85,10 @@ public:
     // plan they have. Throws PlanError(kNotFound) if it is not this coach's.
     PlanWithItems assign_plan(std::int64_t coach_id, std::int64_t plan_id);
 
+    // Delete one of this coach's plans (its items cascade). Throws
+    // PlanError(kNotFound) if it is missing or owned by a different coach.
+    void delete_plan(std::int64_t coach_id, std::int64_t plan_id);
+
 private:
     // Load the plan or throw PlanError(kNotFound) when it is missing or owned by
     // a different coach.

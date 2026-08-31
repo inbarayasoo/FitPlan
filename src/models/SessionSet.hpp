@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <string>
 
 namespace fitplan::models {
 
@@ -11,6 +12,9 @@ struct SessionSet {
     std::int64_t id = 0;
     std::int64_t session_id = 0;
     std::int64_t exercise_id = 0;
+    // The referenced exercise's name. Filled by the repository on every read
+    // (a JOIN to `exercises`); ignored on write.
+    std::string exercise_name;
     std::optional<std::int64_t> plan_item_id;
     int set_number = 0;
     std::optional<int> reps;

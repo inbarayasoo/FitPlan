@@ -31,6 +31,10 @@ public:
     // Returns true if a row changed.
     bool update(const models::WorkoutSession& s);
 
+    // Deletes the session row with this id. Its session_sets rows are removed by
+    // the ON DELETE CASCADE. Returns true if a row was deleted.
+    bool remove(std::int64_t id);
+
 private:
     SQLite::Database& db_;
 };

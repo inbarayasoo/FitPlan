@@ -144,6 +144,11 @@ std::vector<models::WorkoutPlan> PlanService::list_plans(std::int64_t coach_id) 
     return plans_.list_by_coach(coach_id);
 }
 
+void PlanService::delete_plan(std::int64_t coach_id, std::int64_t plan_id) {
+    owned_plan_or_throw(coach_id, plan_id);
+    plans_.remove(plan_id);
+}
+
 PlanWithItems PlanService::get_plan(std::int64_t coach_id,
                                     std::int64_t plan_id) {
     const models::WorkoutPlan header = owned_plan_or_throw(coach_id, plan_id);

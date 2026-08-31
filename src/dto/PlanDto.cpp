@@ -115,6 +115,7 @@ json item_to_json(const models::PlanItem& it) {
         {"id", it.id},
         {"plan_id", it.plan_id},
         {"exercise_id", it.exercise_id},
+        {"exercise_name", it.exercise_name},
         {"order_index", it.order_index},
         {"video_embed_url", nullptr},
     };

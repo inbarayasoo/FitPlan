@@ -45,6 +45,11 @@ public:
     // trainee never has two active plans at once.
     int deactivate_all_for_trainee(std::int64_t trainee_id);
 
+    // Deletes the plan row with this id. Its plan_items rows are removed by the
+    // ON DELETE CASCADE; any logged workout_sessions keep their history with
+    // plan_id set to NULL. Returns true if a row was deleted.
+    bool remove(std::int64_t id);
+
 private:
     SQLite::Database& db_;
 };

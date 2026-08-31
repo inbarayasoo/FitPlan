@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FitPlan</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <span class="brand">FitPlan</span>
+      <button id="logout-btn" class="ghost hidden" type="button">Log out</button>
+    </header>
+
+    <main id="app">
+      <!-- Auth view: shown while nobody is logged in -->
+      <section id="auth-view" class="card hidden">
+        <div class="tabs">
+          <button id="show-login" class="tab active" type="button">Log in</button>
+          <button id="show-register" class="tab" type="button">Register</button>
+        </div>
+
+        <form id="login-form" class="form">
+          <label>Email
+            <input type="email" name="email" autocomplete="email" required />
+          </label>
+          <label>Password
+            <input type="password" name="password" autocomplete="current-password" required />
+          </label>
+          <button type="submit">Log in</button>
+        </form>
+
+        <form id="register-form" class="form hidden">
+          <label>Name
+            <input type="text" name="display_name" required />
+          </label>
+          <label>Email
+            <input type="email" name="email" autocomplete="email" required />
+          </label>
+          <label>Password
+            <input type="password" name="password" minlength="8" autocomplete="new-password" required />
+          </label>
+          <label>Role
+            <select name="role">
+              <option value="trainee">Trainee</option>
+              <option value="coach">Coach</option>
+            </select>
+          </label>
+          <button type="submit">Create account</button>
+        </form>
+      </section>
+
+      <!-- Coach dashboard -->
+      <section id="coach-view" class="hidden">
+        <div class="dash-tabs">
+          <button class="dash-tab active" data-panel="exercises" type="button">Exercises</button>
+          <button class="dash-tab" data-panel="plans" type="button">Plans</button>
+          <button class="dash-tab" data-panel="trainees" type="button">Trainees</button>
+        </div>
+
+        <div id="panel-exercises" class="panel">
+          <form id="exercise-form" class="stack-form">
+            <label>Name
+              <input type="text" name="name" required />
+            </label>
+            <label>Category
+              <input type="text" name="category" />
+            </label>
+            <label>Primary muscle
+              <input type="text" name="primary_muscle" />
+            </label>
+            <label>Description
+              <input type="text" name="description" />
+            </label>
+            <label>Tutorial video URL
+              <input type="url" name="video_url"
+                     placeholder="https://www.youtube.com/watch?v=..." />
+            </label>
+            <div class="form-actions">
+              <button type="submit" id="exercise-submit">Add exercise</button>
+              <button type="button" id="exercise-cancel" class="ghost hidden">Cancel</button>
+            </div>
+          </form>
+
+          <ul id="exercise-list" class="item-list"></ul>
+        </div>
+        <div id="panel-plans" class="panel hidden">
+          <form id="plan-form" class="stack-form">
+            <label>Trainee
+              <select name="trainee_id" required></select>
+            </label>
+            <label>Plan name
+              <input type="text" name="name" required />
+            </label>
+            <label>Notes
+              <input type="text" name="notes" />
+            </label>
+
+            <div id="plan-items"></div>
+            <button type="button" id="plan-add-item" class="ghost">Add exercise</button>
+
+            <div class="form-actions">
+              <button type="submit" id="plan-submit">Create plan</button>
+              <button type="button" id="plan-cancel" class="ghost hidden">Cancel</button>
+            </div>
+          </form>
+
+          <ul id="plan-list" class="item-list"></ul>
+          <div id="plan-detail" class="plan-detail hidden"></div>
+        </div>
+        <div id="panel-trainees" class="panel hidden">
+          <form id="trainee-form" class="stack-form">
+            <label>Trainee email
+              <input type="email" name="email" required
+                     placeholder="trainee@example.com" />
+            </label>
+            <div class="form-actions">
+              <button type="submit">Add to roster</button>
+            </div>
+          </form>
+
+          <ul id="trainee-list" class="item-list"></ul>
+        </div>
+      </section>
+
+      <!-- Trainee dashboard -->
+      <section id="trainee-view" class="hidden">
+        <div class="dash-tabs">
+          <button class="dash-tab active" data-panel="my-plan" type="button">My Plan</button>
+          <button class="dash-tab" data-panel="log-session" type="button">Log Session</button>
+          <button class="dash-tab" data-panel="notes" type="button">Notes</button>
+          <button class="dash-tab" data-panel="my-progress" type="button">My Progress</button>
+        </div>
+
+        <div id="panel-my-plan" class="panel"></div>
+        <div id="panel-notes" class="panel hidden"></div>
+        <div id="panel-log-session" class="panel hidden">
+          <form id="session-form" class="stack-form">
+            <label>Date
+              <input type="date" name="performed_on" />
+            </label>
+            <label>Status
+              <select name="status">
+                <option value="completed">Completed</option>
+                <option value="in_progress">In progress</option>
+                <option value="planned">Planned</option>
+              </select>
+            </label>
+            <label id="session-day-field" class="hidden">Day
+              <select name="day"></select>
+            </label>
+            <label>Notes
+              <input type="text" name="notes" />
+            </label>
+
+            <div id="session-exercises"></div>
+
+            <div class="form-actions">
+              <button type="submit" id="session-submit">Log session</button>
+              <button type="button" id="session-cancel" class="ghost hidden">Cancel</button>
+            </div>
+          </form>
+
+          <h3>Recent sessions</h3>
+          <ul id="session-history" class="item-list"></ul>
+        </div>
+        <div id="panel-my-progress" class="panel hidden"></div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+    <script src="/vendor/chart.umd.min.js"></script>
+    <script src="/api.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>

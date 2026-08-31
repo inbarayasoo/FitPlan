@@ -18,6 +18,7 @@ namespace fitplan {
 //   FITPLAN_JWT_TTL_SECONDS  access-token lifetime     (default 86400)
 //   FITPLAN_LOG_LEVEL        trace|debug|info|warn|error|off  (default info)
 //   FITPLAN_THREADS          worker threads, 0 = auto  (default 0)
+//   FITPLAN_WEB_DIR          static frontend directory (default web)
 struct Config {
     std::string host = "0.0.0.0";
     std::uint16_t port = 8080;
@@ -27,6 +28,7 @@ struct Config {
     std::int64_t jwt_ttl_seconds = 24 * 60 * 60;
     std::string log_level = "info";
     std::size_t thread_count = 0;
+    std::string web_dir = "web";
 
     // Builds a Config from the current environment. Never throws: malformed
     // values fall back to the default and are reported through spdlog::warn.

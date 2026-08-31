@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <exception>
 #include <iomanip>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <string>
@@ -15,6 +16,8 @@
 #include "http/ApiError.hpp"
 #include "http/AuthGuard.hpp"
 #include "middleware/JwtAuthMiddleware.hpp"
+#include "models/Exercise.hpp"
+#include "repositories/ExerciseRepository.hpp"
 #include "services/ProgressService.hpp"
 #include "util/Jwt.hpp"
 
@@ -37,6 +40,7 @@ std::string today_iso() {
 
 // Run every ProgressService calculation over one trainee's data.
 dto::ProgressReport build_report(services::SessionService& sessions,
+                                 repositories::ExerciseRepository& exercises,
                                  std::int64_t trainee_id) {
     using services::ProgressService;
 
@@ -60,6 +64,10 @@ dto::ProgressReport build_report(services::SessionService& sessions,
     for (const std::int64_t ex_id : exercise_ids) {
         dto::ExerciseE1rmSeries e;
         e.exercise_id = ex_id;
+        if (const std::optional<models::Exercise> ex =
+                exercises.find_by_id(ex_id)) {
+            e.exercise_name = ex->name;
+        }
         e.series = ProgressService::best_e1rm_over_time(logged, ex_id);
         if (!e.series.empty()) {
             report.exercises.push_back(std::move(e));
@@ -72,17 +80,18 @@ dto::ProgressReport build_report(services::SessionService& sessions,
 
 void register_progress_routes(app::FitPlanApp& app,
                               services::SessionService& sessions,
-                              repositories::CoachTraineeRepository& roster) {
+                              repositories::CoachTraineeRepository& roster,
+                              repositories::ExerciseRepository& exercises) {
     // GET /api/my/progress -----------------------------------------------------
     CROW_ROUTE(app, "/api/my/progress")
-        ([&app, &sessions](const crow::request& req) {
+        ([&app, &sessions, &exercises](const crow::request& req) {
             try {
                 const auto& ctx =
                     app.template get_context<middleware::JwtAuthMiddleware>(req);
                 const util::TokenClaims claims =
                     http::require_role(ctx, "trainee");
                 return dto::progress_response(
-                    build_report(sessions, claims.user_id));
+                    build_report(sessions, exercises, claims.user_id));
             } catch (const std::exception& ex) {
                 return http::problem_response_for(ex);
             }
@@ -90,7 +99,8 @@ void register_progress_routes(app::FitPlanApp& app,
 
     // GET /api/trainees/<int>/progress -----------------------------------
     CROW_ROUTE(app, "/api/trainees/<int>/progress")
-        ([&app, &sessions, &roster](const crow::request& req, int trainee_id) {
+        ([&app, &sessions, &roster, &exercises](const crow::request& req,
+                                                int trainee_id) {
             try {
                 const auto& ctx =
                     app.template get_context<middleware::JwtAuthMiddleware>(req);
@@ -101,7 +111,8 @@ void register_progress_routes(app::FitPlanApp& app,
                     throw http::ApiError(http::ApiErrorKind::kNotFound,
                                          "that trainee is not on your roster");
                 }
-                return dto::progress_response(build_report(sessions, trainee_id));
+                return dto::progress_response(
+                    build_report(sessions, exercises, trainee_id));
             } catch (const std::exception& ex) {
                 return http::problem_response_for(ex);
             }

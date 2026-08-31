@@ -105,4 +105,10 @@ bool SessionRepository::update(const models::WorkoutSession& s) {
     return stmt.exec() > 0;
 }
 
+bool SessionRepository::remove(std::int64_t id) {
+    SQLite::Statement stmt(db_, "DELETE FROM workout_sessions WHERE id = ?");
+    stmt.bind(1, id);
+    return stmt.exec() > 0;
+}
+
 }  // namespace fitplan::repositories

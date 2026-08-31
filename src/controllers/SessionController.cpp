@@ -83,6 +83,23 @@ void register_session_routes(app::FitPlanApp& app,
                     return http::problem_response_for(ex);
                 }
             });
+
+    // DELETE /api/my/sessions/<int> ------------------------------------
+    CROW_ROUTE(app, "/api/my/sessions/<int>")
+        .methods(crow::HTTPMethod::Delete)(
+            [&app, &sessions](const crow::request& req, int id) {
+                try {
+                    const auto& ctx =
+                        app.template get_context<middleware::JwtAuthMiddleware>(
+                            req);
+                    const util::TokenClaims claims =
+                        http::require_role(ctx, "trainee");
+                    sessions.delete_session(claims.user_id, id);
+                    return crow::response(204);
+                } catch (const std::exception& ex) {
+                    return http::problem_response_for(ex);
+                }
+            });
 }
 
 }  // namespace fitplan::controllers

@@ -116,4 +116,12 @@ TEST_F(PlanRepositoryTest, SetActiveAndDeactivateAllForTrainee) {
     EXPECT_TRUE(repo_.find_by_id(b.id)->is_active);
 }
 
+TEST_F(PlanRepositoryTest, RemoveDeletesTheRowAndReportsWhetherOneWasHit) {
+    const WorkoutPlan p = repo_.create(sample());
+
+    EXPECT_TRUE(repo_.remove(p.id));
+    EXPECT_FALSE(repo_.find_by_id(p.id).has_value());
+    EXPECT_FALSE(repo_.remove(p.id));  // already gone
+}
+
 }  // namespace

@@ -76,6 +76,23 @@ void register_plan_routes(app::FitPlanApp& app, services::PlanService& plans) {
                 }
             });
 
+    // DELETE /api/plans/<int> ----------------------------------------------
+    CROW_ROUTE(app, "/api/plans/<int>")
+        .methods(crow::HTTPMethod::Delete)(
+            [&app, &plans](const crow::request& req, int id) {
+                try {
+                    const auto& ctx =
+                        app.template get_context<middleware::JwtAuthMiddleware>(
+                            req);
+                    const util::TokenClaims claims =
+                        http::require_role(ctx, "coach");
+                    plans.delete_plan(claims.user_id, id);
+                    return crow::response(204);
+                } catch (const std::exception& ex) {
+                    return http::problem_response_for(ex);
+                }
+            });
+
     // POST /api/plans/<int>/assign -----------------------------------------
     CROW_ROUTE(app, "/api/plans/<int>/assign")
         .methods(crow::HTTPMethod::Post)(

@@ -40,6 +40,16 @@ bool CoachTraineeRepository::is_linked(std::int64_t coach_id,
     return stmt.executeStep();
 }
 
+bool CoachTraineeRepository::unlink(std::int64_t coach_id,
+                                   std::int64_t trainee_id) {
+    SQLite::Statement stmt(
+        db_,
+        "DELETE FROM coach_trainees WHERE coach_id = ? AND trainee_id = ?");
+    stmt.bind(1, coach_id);
+    stmt.bind(2, trainee_id);
+    return stmt.exec() > 0;  // 0 rows => the pair was not on the roster
+}
+
 std::vector<models::User> CoachTraineeRepository::list_trainees(
     std::int64_t coach_id) {
     SQLite::Statement stmt(

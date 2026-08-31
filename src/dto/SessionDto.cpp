@@ -119,6 +119,7 @@ json set_to_json(const models::SessionSet& s) {
         {"id", s.id},
         {"session_id", s.session_id},
         {"exercise_id", s.exercise_id},
+        {"exercise_name", s.exercise_name},
         {"set_number", s.set_number},
         {"completed", s.completed},
     };
@@ -187,6 +188,15 @@ services::SessionPatch parse_session_patch(const std::string& body) {
         if (obj.at("notes").is_string() &&
             !obj.at("notes").get<std::string>().empty()) {
             patch.notes = obj.at("notes").get<std::string>();
+        }
+    }
+    if (obj.contains("sets")) {
+        if (!obj.at("sets").is_array()) {
+            invalid("sets must be an array");
+        }
+        patch.set_sets = true;
+        for (const json& entry : obj.at("sets")) {
+            patch.sets.push_back(parse_set(entry));
         }
     }
     return patch;

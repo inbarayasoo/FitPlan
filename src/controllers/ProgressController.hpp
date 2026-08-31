@@ -2,6 +2,7 @@
 
 #include "app/App.hpp"
 #include "repositories/CoachTraineeRepository.hpp"
+#include "repositories/ExerciseRepository.hpp"
 #include "services/SessionService.hpp"
 
 namespace fitplan::controllers {
@@ -15,6 +16,7 @@ namespace fitplan::controllers {
 // and active-plan targets.
 void register_progress_routes(app::FitPlanApp& app,
                               services::SessionService& sessions,
-                              repositories::CoachTraineeRepository& roster);
+                              repositories::CoachTraineeRepository& roster,
+                              repositories::ExerciseRepository& exercises);
 
 }  // namespace fitplan::controllers

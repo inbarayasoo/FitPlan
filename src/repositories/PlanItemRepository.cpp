@@ -6,13 +6,20 @@ namespace fitplan::repositories {
 
 namespace {
 
+// Qualified with the `pi` alias because every read JOINs `exercises e` to pick
+// up the exercise name, and both tables have an `id` column.
 constexpr const char* kSelectColumns =
-    "id, plan_id, exercise_id, order_index, day_label, target_sets, "
-    "target_reps, target_weight, rest_seconds, notes, video_url";
+    "pi.id, pi.plan_id, pi.exercise_id, pi.order_index, pi.day_label, "
+    "pi.target_sets, pi.target_reps, pi.target_weight, pi.rest_seconds, "
+    "pi.notes, pi.video_url, e.name";
+
+constexpr const char* kFromJoin =
+    " FROM plan_items pi JOIN exercises e ON e.id = pi.exercise_id";
 
 // Column order must match kSelectColumns:
 //   0 id  1 plan_id  2 exercise_id  3 order_index  4 day_label  5 target_sets
 //   6 target_reps  7 target_weight  8 rest_seconds  9 notes  10 video_url
+//   11 exercise name
 models::PlanItem row_to_item(SQLite::Statement& stmt) {
     models::PlanItem it;
     it.id = stmt.getColumn(0).getInt64();
@@ -26,6 +33,7 @@ models::PlanItem row_to_item(SQLite::Statement& stmt) {
     if (!stmt.getColumn(8).isNull()) it.rest_seconds = stmt.getColumn(8).getInt();
     if (!stmt.getColumn(9).isNull()) it.notes = stmt.getColumn(9).getString();
     if (!stmt.getColumn(10).isNull()) it.video_url = stmt.getColumn(10).getString();
+    it.exercise_name = stmt.getColumn(11).getString();
     return it;
 }
 
@@ -67,7 +75,7 @@ models::PlanItem PlanItemRepository::create(const models::PlanItem& item) {
 std::optional<models::PlanItem> PlanItemRepository::find_by_id(std::int64_t id) {
     SQLite::Statement stmt(
         db_,
-        std::string("SELECT ") + kSelectColumns + " FROM plan_items WHERE id = ?");
+        std::string("SELECT ") + kSelectColumns + kFromJoin + " WHERE pi.id = ?");
     stmt.bind(1, id);
     if (!stmt.executeStep()) {
         return std::nullopt;
@@ -78,9 +86,9 @@ std::optional<models::PlanItem> PlanItemRepository::find_by_id(std::int64_t id) 
 std::vector<models::PlanItem> PlanItemRepository::list_by_plan(
     std::int64_t plan_id) {
     SQLite::Statement stmt(
-        db_, std::string("SELECT ") + kSelectColumns +
-                 " FROM plan_items WHERE plan_id = ? "
-                 "ORDER BY order_index ASC, id ASC");
+        db_, std::string("SELECT ") + kSelectColumns + kFromJoin +
+                 " WHERE pi.plan_id = ? "
+                 "ORDER BY pi.order_index ASC, pi.id ASC");
     stmt.bind(1, plan_id);
 
     std::vector<models::PlanItem> result;

@@ -25,6 +25,7 @@ crow::response progress_response(const ProgressReport& report) {
     for (const ExerciseE1rmSeries& ex : report.exercises) {
         exercises.push_back(json{
             {"exercise_id", ex.exercise_id},
+            {"exercise_name", ex.exercise_name},
             {"best_e1rm_over_time", series_to_json(ex.series)},
         });
     }

@@ -53,6 +53,7 @@ Config Config::from_env() {
     cfg.jwt_ttl_seconds = env_int_or<std::int64_t>("FITPLAN_JWT_TTL_SECONDS", cfg.jwt_ttl_seconds);
     cfg.log_level = env_or("FITPLAN_LOG_LEVEL", cfg.log_level);
     cfg.thread_count = env_int_or<std::size_t>("FITPLAN_THREADS", cfg.thread_count);
+    cfg.web_dir = env_or("FITPLAN_WEB_DIR", cfg.web_dir);
     return cfg;
 }
 

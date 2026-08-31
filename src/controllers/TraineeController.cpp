@@ -64,6 +64,28 @@ void register_trainee_routes(app::FitPlanApp& app,
                     return http::problem_response_for(ex);
                 }
             });
+
+    // DELETE /api/trainees/<int> ------------------------------------------
+    CROW_ROUTE(app, "/api/trainees/<int>")
+        .methods(crow::HTTPMethod::Delete)(
+            [&app, &roster](const crow::request& req, int trainee_id) {
+                try {
+                    const auto& ctx =
+                        app.template get_context<middleware::JwtAuthMiddleware>(
+                            req);
+                    const util::TokenClaims claims =
+                        http::require_role(ctx, "coach");
+
+                    if (!roster.unlink(claims.user_id, trainee_id)) {
+                        throw http::ApiError(
+                            http::ApiErrorKind::kNotFound,
+                            "that trainee is not on your roster");
+                    }
+                    return crow::response(204);
+                } catch (const std::exception& ex) {
+                    return http::problem_response_for(ex);
+                }
+            });
 }
 
 }  // namespace fitplan::controllers
