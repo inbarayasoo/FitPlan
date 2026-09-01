@@ -23,13 +23,15 @@ add_executable(fitplan_unit_tests
     unit/session_service_test.cpp
     unit/jwt_auth_middleware_test.cpp
     unit/jwt_test.cpp
+    unit/jwt_hardening_test.cpp
     unit/user_repository_test.cpp
     unit/validation_test.cpp)
 
 target_link_libraries(fitplan_unit_tests PRIVATE
     fitplan_lib
     fitplan_warnings
-    GTest::gtest_main)
+    GTest::gtest_main
+    jwt-cpp::jwt-cpp)
 
 target_compile_definitions(fitplan_unit_tests PRIVATE
     ${FITPLAN_TEST_MIGRATIONS_DEFINE})
