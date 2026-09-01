@@ -16,6 +16,7 @@ add_executable(fitplan_unit_tests
     unit/exercise_note_repository_test.cpp
     unit/exercise_repository_test.cpp
     unit/hashing_test.cpp
+    unit/migration_set_test.cpp
     unit/plan_item_repository_test.cpp
     unit/plan_repository_test.cpp
     unit/progress_service_test.cpp
