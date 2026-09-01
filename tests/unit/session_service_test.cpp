@@ -23,7 +23,9 @@ using fitplan::services::SessionPatch;
 using fitplan::services::SessionService;
 using fitplan::services::SessionSetInput;
 
-std::string migrations_dir() { return FITPLAN_TEST_MIGRATIONS_DIR; }
+std::string migrations_dir() {
+    return FITPLAN_TEST_MIGRATIONS_DIR;
+}
 
 class SessionServiceTest : public ::testing::Test {
 protected:

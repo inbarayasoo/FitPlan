@@ -13,7 +13,9 @@ using fitplan::db::Database;
 
 // Absolute path to the real migrations folder, injected by CMake so the test
 // does not depend on the working directory.
-std::string migrations_dir() { return FITPLAN_TEST_MIGRATIONS_DIR; }
+std::string migrations_dir() {
+    return FITPLAN_TEST_MIGRATIONS_DIR;
+}
 
 // A throwaway on-disk database file, unique per test and deleted around it.
 class DatabaseTest : public ::testing::Test {
@@ -23,10 +25,9 @@ protected:
 
     std::string path() const { return db_path_.string(); }
 
-    fs::path db_path_ =
-        fs::temp_directory_path() /
-        (std::string("fitplan_db_test_") +
-         ::testing::UnitTest::GetInstance()->current_test_info()->name() + ".db");
+    fs::path db_path_ = fs::temp_directory_path() /
+                        (std::string("fitplan_db_test_") +
+                         ::testing::UnitTest::GetInstance()->current_test_info()->name() + ".db");
 };
 
 TEST_F(DatabaseTest, AppliesEveryMigration) {
@@ -76,7 +77,7 @@ TEST_F(DatabaseTest, RejectsAForeignKeyViolationOnceMigrated) {
 
     // exercises.coach_id references users(id); user 999 does not exist.
     EXPECT_THROW(db.connection().exec("INSERT INTO exercises (coach_id, name) "
-                                     "VALUES (999, 'Orphan')"),
+                                      "VALUES (999, 'Orphan')"),
                  SQLite::Exception);
 }
 

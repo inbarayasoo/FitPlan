@@ -14,8 +14,7 @@ namespace fitplan::http {
 
 // Requires a valid access token. Returns its claims, or throws
 // kInvalidCredentials (-> 401) when the request had none.
-inline util::TokenClaims require_auth(
-    const middleware::JwtAuthMiddleware::context& ctx) {
+inline util::TokenClaims require_auth(const middleware::JwtAuthMiddleware::context& ctx) {
     if (!ctx.claims.has_value()) {
         throw services::AuthError(services::AuthErrorKind::kInvalidCredentials,
                                   "a valid access token is required");
@@ -25,8 +24,8 @@ inline util::TokenClaims require_auth(
 
 // Requires a valid token *and* a specific role. Throws kForbidden (-> 403) when
 // the caller is authenticated but has the wrong role.
-inline util::TokenClaims require_role(
-    const middleware::JwtAuthMiddleware::context& ctx, const std::string& role) {
+inline util::TokenClaims require_role(const middleware::JwtAuthMiddleware::context& ctx,
+                                      const std::string& role) {
     const util::TokenClaims claims = require_auth(ctx);
     if (claims.role != role) {
         throw services::AuthError(services::AuthErrorKind::kForbidden,

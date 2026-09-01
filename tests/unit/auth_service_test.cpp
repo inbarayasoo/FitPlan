@@ -19,7 +19,9 @@ using fitplan::services::AuthErrorKind;
 using fitplan::services::AuthService;
 using fitplan::util::verify_access_token;
 
-std::string migrations_dir() { return FITPLAN_TEST_MIGRATIONS_DIR; }
+std::string migrations_dir() {
+    return FITPLAN_TEST_MIGRATIONS_DIR;
+}
 
 constexpr const char* kSecret = "unit-test-secret";
 constexpr std::int64_t kTtl = 3600;
@@ -32,8 +34,7 @@ protected:
 };
 
 TEST_F(AuthServiceTest, RegisterReturnsAUserAndAWorkingToken) {
-    const auto out =
-        auth_.register_user("coach@example.com", "password123", "coach", "Coach One");
+    const auto out = auth_.register_user("coach@example.com", "password123", "coach", "Coach One");
 
     EXPECT_GT(out.user.id, 0);
     EXPECT_EQ(out.user.email, "coach@example.com");
@@ -46,8 +47,7 @@ TEST_F(AuthServiceTest, RegisterReturnsAUserAndAWorkingToken) {
 }
 
 TEST_F(AuthServiceTest, RegisterStoresAHashNotThePlaintext) {
-    const auto out =
-        auth_.register_user("t@example.com", "password123", "trainee", "Trainee");
+    const auto out = auth_.register_user("t@example.com", "password123", "trainee", "Trainee");
 
     EXPECT_NE(out.user.password_hash, "password123");
     EXPECT_FALSE(out.user.password_hash.empty());
@@ -112,8 +112,7 @@ TEST_F(AuthServiceTest, LoginRejectsAnUnknownEmail) {
 }
 
 TEST_F(AuthServiceTest, AuthenticatedUserReturnsTheStoredUser) {
-    const auto out =
-        auth_.register_user("me@example.com", "password123", "trainee", "Me");
+    const auto out = auth_.register_user("me@example.com", "password123", "trainee", "Me");
 
     const auto user = auth_.authenticated_user(out.user.id);
 

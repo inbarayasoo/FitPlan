@@ -45,11 +45,9 @@ TEST(IsAllowedVideoUrl, IgnoresCaseInHostAndAllowsPort) {
 }
 
 TEST(YouTubeEmbedUrl, ExtractsIdFromEachYouTubeUrlShape) {
-    const std::string expected =
-        "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ";
+    const std::string expected = "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ";
     EXPECT_EQ(youtube_embed_url("https://www.youtube.com/watch?v=dQw4w9WgXcQ"), expected);
-    EXPECT_EQ(youtube_embed_url("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42s"),
-              expected);
+    EXPECT_EQ(youtube_embed_url("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42s"), expected);
     EXPECT_EQ(youtube_embed_url("https://youtu.be/dQw4w9WgXcQ?si=abc"), expected);
     EXPECT_EQ(youtube_embed_url("https://m.youtube.com/watch?v=dQw4w9WgXcQ"), expected);
     EXPECT_EQ(youtube_embed_url("https://www.youtube.com/embed/dQw4w9WgXcQ"), expected);

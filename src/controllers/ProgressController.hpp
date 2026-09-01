@@ -14,8 +14,7 @@ namespace fitplan::controllers {
 //
 // Both assemble ProgressService's pure functions over the trainee's logged sets
 // and active-plan targets.
-void register_progress_routes(app::FitPlanApp& app,
-                              services::SessionService& sessions,
+void register_progress_routes(app::FitPlanApp& app, services::SessionService& sessions,
                               repositories::CoachTraineeRepository& roster,
                               repositories::ExerciseRepository& exercises);
 

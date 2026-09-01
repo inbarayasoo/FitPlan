@@ -20,46 +20,38 @@ models::User row_to_user(SQLite::Statement& stmt) {
 }  // namespace
 
 bool CoachTraineeRepository::link(std::int64_t coach_id, std::int64_t trainee_id) {
-    SQLite::Statement stmt(
-        db_,
-        "INSERT OR IGNORE INTO coach_trainees (coach_id, trainee_id) "
-        "VALUES (?, ?)");
+    SQLite::Statement stmt(db_,
+                           "INSERT OR IGNORE INTO coach_trainees (coach_id, trainee_id) "
+                           "VALUES (?, ?)");
     stmt.bind(1, coach_id);
     stmt.bind(2, trainee_id);
     return stmt.exec() > 0;  // 0 rows => the pair was already there
 }
 
-bool CoachTraineeRepository::is_linked(std::int64_t coach_id,
-                                      std::int64_t trainee_id) {
-    SQLite::Statement stmt(
-        db_,
-        "SELECT 1 FROM coach_trainees WHERE coach_id = ? AND trainee_id = ? "
-        "LIMIT 1");
+bool CoachTraineeRepository::is_linked(std::int64_t coach_id, std::int64_t trainee_id) {
+    SQLite::Statement stmt(db_,
+                           "SELECT 1 FROM coach_trainees WHERE coach_id = ? AND trainee_id = ? "
+                           "LIMIT 1");
     stmt.bind(1, coach_id);
     stmt.bind(2, trainee_id);
     return stmt.executeStep();
 }
 
-bool CoachTraineeRepository::unlink(std::int64_t coach_id,
-                                   std::int64_t trainee_id) {
-    SQLite::Statement stmt(
-        db_,
-        "DELETE FROM coach_trainees WHERE coach_id = ? AND trainee_id = ?");
+bool CoachTraineeRepository::unlink(std::int64_t coach_id, std::int64_t trainee_id) {
+    SQLite::Statement stmt(db_, "DELETE FROM coach_trainees WHERE coach_id = ? AND trainee_id = ?");
     stmt.bind(1, coach_id);
     stmt.bind(2, trainee_id);
     return stmt.exec() > 0;  // 0 rows => the pair was not on the roster
 }
 
-std::vector<models::User> CoachTraineeRepository::list_trainees(
-    std::int64_t coach_id) {
-    SQLite::Statement stmt(
-        db_,
-        "SELECT u.id, u.email, u.password_hash, u.role, u.display_name, "
-        "       u.created_at "
-        "FROM coach_trainees ct "
-        "JOIN users u ON u.id = ct.trainee_id "
-        "WHERE ct.coach_id = ? "
-        "ORDER BY ct.created_at DESC, u.id DESC");
+std::vector<models::User> CoachTraineeRepository::list_trainees(std::int64_t coach_id) {
+    SQLite::Statement stmt(db_,
+                           "SELECT u.id, u.email, u.password_hash, u.role, u.display_name, "
+                           "       u.created_at "
+                           "FROM coach_trainees ct "
+                           "JOIN users u ON u.id = ct.trainee_id "
+                           "WHERE ct.coach_id = ? "
+                           "ORDER BY ct.created_at DESC, u.id DESC");
     stmt.bind(1, coach_id);
 
     std::vector<models::User> result;

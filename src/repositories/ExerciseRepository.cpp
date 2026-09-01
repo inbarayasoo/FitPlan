@@ -37,8 +37,7 @@ models::Exercise row_to_exercise(SQLite::Statement& stmt) {
 
 // Binds an optional string to parameter `index`: the string value if present,
 // otherwise SQL NULL.
-void bind_optional(SQLite::Statement& stmt, int index,
-                   const std::optional<std::string>& value) {
+void bind_optional(SQLite::Statement& stmt, int index, const std::optional<std::string>& value) {
     if (value.has_value()) {
         stmt.bind(index, *value);
     } else {
@@ -49,11 +48,10 @@ void bind_optional(SQLite::Statement& stmt, int index,
 }  // namespace
 
 models::Exercise ExerciseRepository::create(const models::Exercise& e) {
-    SQLite::Statement stmt(
-        db_,
-        "INSERT INTO exercises "
-        "(coach_id, name, category, primary_muscle, description, video_url) "
-        "VALUES (?, ?, ?, ?, ?, ?)");
+    SQLite::Statement stmt(db_,
+                           "INSERT INTO exercises "
+                           "(coach_id, name, category, primary_muscle, description, video_url) "
+                           "VALUES (?, ?, ?, ?, ?, ?)");
 
     stmt.bind(1, e.coach_id);
     stmt.bind(2, e.name);
@@ -92,10 +90,9 @@ std::vector<models::Exercise> ExerciseRepository::list_by_coach(std::int64_t coa
 }
 
 bool ExerciseRepository::update(const models::Exercise& e) {
-    SQLite::Statement stmt(
-        db_,
-        "UPDATE exercises SET name = ?, category = ?, primary_muscle = ?, "
-        "description = ?, video_url = ? WHERE id = ?");
+    SQLite::Statement stmt(db_,
+                           "UPDATE exercises SET name = ?, category = ?, primary_muscle = ?, "
+                           "description = ?, video_url = ? WHERE id = ?");
     stmt.bind(1, e.name);
     bind_optional(stmt, 2, e.category);
     bind_optional(stmt, 3, e.primary_muscle);

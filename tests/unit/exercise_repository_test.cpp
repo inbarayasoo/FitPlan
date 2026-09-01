@@ -14,7 +14,9 @@ using fitplan::db::Database;
 using fitplan::models::Exercise;
 using fitplan::repositories::ExerciseRepository;
 
-std::string migrations_dir() { return FITPLAN_TEST_MIGRATIONS_DIR; }
+std::string migrations_dir() {
+    return FITPLAN_TEST_MIGRATIONS_DIR;
+}
 
 // Every test gets a fresh, migrated, in-memory database and one coach to own the
 // exercises. ":memory:" means no files and full isolation between tests.

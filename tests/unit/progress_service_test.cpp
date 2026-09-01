@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "services/ProgressService.hpp"
 #include <utility>
+#include "services/ProgressService.hpp"
 
 namespace {
 
@@ -48,8 +48,7 @@ TEST(TotalVolume, SumsRepsTimesWeightOverCountedSets) {
     };
 
     for (const Case& c : cases) {
-        EXPECT_DOUBLE_EQ(ProgressService::total_volume(c.sets), c.expected)
-            << "case: " << c.name;
+        EXPECT_DOUBLE_EQ(ProgressService::total_volume(c.sets), c.expected) << "case: " << c.name;
     }
 }
 
@@ -127,14 +126,12 @@ TEST(VolumeOverTime, GroupsByDayAscendingAndSkipsEmptyDays) {
     };
 
     for (const Case& c : cases) {
-        const std::vector<SeriesPoint> got =
-            ProgressService::volume_over_time(c.sets);
+        const std::vector<SeriesPoint> got = ProgressService::volume_over_time(c.sets);
 
         ASSERT_EQ(got.size(), c.expected.size()) << "case: " << c.name;
         for (std::size_t i = 0; i < got.size(); ++i) {
             EXPECT_EQ(got[i].date, c.expected[i].first) << "case: " << c.name;
-            EXPECT_DOUBLE_EQ(got[i].value, c.expected[i].second)
-                << "case: " << c.name;
+            EXPECT_DOUBLE_EQ(got[i].value, c.expected[i].second) << "case: " << c.name;
         }
     }
 }
@@ -163,8 +160,7 @@ TEST(BestE1rmOverTime, KeepsDailyMaxForOneExerciseSortedByDate) {
         set_for(bench, "2026-08-11", 5, 80.0),              // different exercise
     };
 
-    const std::vector<SeriesPoint> got =
-        ProgressService::best_e1rm_over_time(sets, squat);
+    const std::vector<SeriesPoint> got = ProgressService::best_e1rm_over_time(sets, squat);
 
     ASSERT_EQ(got.size(), 2u);
     EXPECT_EQ(got[0].date, "2026-08-10");
@@ -222,14 +218,11 @@ TEST(Adherence, RatioOfCompletedPrescribedSetsClampedToOne) {
          plan,
          {logged(1, true), logged(std::nullopt, true)},
          0.25},
-        {"sets for an unknown item do not count",
-         plan,
-         {logged(1, true), logged(99, true)},
-         0.25},
+        {"sets for an unknown item do not count", plan, {logged(1, true), logged(99, true)}, 0.25},
         {"more than prescribed is clamped to one",
          plan,
-         {logged(1, true), logged(1, true), logged(1, true), logged(1, true),
-          logged(1, true), logged(2, true)},
+         {logged(1, true), logged(1, true), logged(1, true), logged(1, true), logged(1, true),
+          logged(2, true)},
          1.0},
         {"item with a zero target is left out of the denominator",
          {{1, 2}, {2, 0}},
@@ -238,8 +231,7 @@ TEST(Adherence, RatioOfCompletedPrescribedSetsClampedToOne) {
     };
 
     for (const Case& c : cases) {
-        EXPECT_DOUBLE_EQ(ProgressService::adherence(c.sets, c.prescribed),
-                         c.expected)
+        EXPECT_DOUBLE_EQ(ProgressService::adherence(c.sets, c.prescribed), c.expected)
             << "case: " << c.name;
     }
 }
@@ -266,21 +258,31 @@ TEST(WeeklyStreak, CountsConsecutiveWeeksBackFromAsOf) {
     const std::vector<Case> cases = {
         {"no sets", {}, "2026-08-30", 0},
         {"nothing in the as_of week",
-         {on_day("2026-08-18"), on_day("2026-08-12")}, "2026-08-30", 0},
+         {on_day("2026-08-18"), on_day("2026-08-12")},
+         "2026-08-30",
+         0},
         {"one week only", {on_day("2026-08-24")}, "2026-08-30", 1},
         {"two sets in the same week count once",
-         {on_day("2026-08-24"), on_day("2026-08-30")}, "2026-08-30", 1},
+         {on_day("2026-08-24"), on_day("2026-08-30")},
+         "2026-08-30",
+         1},
         {"three consecutive weeks",
          {on_day("2026-08-30"), on_day("2026-08-20"), on_day("2026-08-11")},
-         "2026-08-30", 3},
+         "2026-08-30",
+         3},
         {"a missing week breaks the run",
-         {on_day("2026-08-30"), on_day("2026-08-11")}, "2026-08-30", 1},
+         {on_day("2026-08-30"), on_day("2026-08-11")},
+         "2026-08-30",
+         1},
         {"weeks after as_of do not count",
-         {on_day("2026-09-02"), on_day("2026-08-30")}, "2026-08-30", 1},
+         {on_day("2026-09-02"), on_day("2026-08-30")},
+         "2026-08-30",
+         1},
         {"unparseable dates are ignored",
-         {on_day("not-a-date"), on_day("2026-08-30")}, "2026-08-30", 1},
-        {"an unparseable as_of is zero",
-         {on_day("2026-08-30")}, "nope", 0},
+         {on_day("not-a-date"), on_day("2026-08-30")},
+         "2026-08-30",
+         1},
+        {"an unparseable as_of is zero", {on_day("2026-08-30")}, "nope", 0},
     };
 
     for (const Case& c : cases) {

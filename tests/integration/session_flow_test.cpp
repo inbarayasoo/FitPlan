@@ -9,7 +9,6 @@
 #include <string>
 #include <thread>
 
-#include "HttpTestClient.hpp"
 #include "app/App.hpp"
 #include "controllers/AuthController.hpp"
 #include "controllers/ExerciseController.hpp"
@@ -18,6 +17,7 @@
 #include "controllers/SessionController.hpp"
 #include "controllers/TraineeController.hpp"
 #include "db/Database.hpp"
+#include "HttpTestClient.hpp"
 #include "middleware/JwtAuthMiddleware.hpp"
 #include "repositories/CoachTraineeRepository.hpp"
 #include "repositories/ExerciseRepository.hpp"
@@ -32,25 +32,25 @@
 
 namespace {
 
-using fitplan::testutil::HttpResponse;
 using fitplan::testutil::http_request;
+using fitplan::testutil::HttpResponse;
 using fitplan::testutil::json_number;
 using fitplan::testutil::json_string;
 
-std::string migrations_dir() { return FITPLAN_TEST_MIGRATIONS_DIR; }
+std::string migrations_dir() {
+    return FITPLAN_TEST_MIGRATIONS_DIR;
+}
 
 class SessionFlowTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        app_.get_middleware<fitplan::middleware::JwtAuthMiddleware>().secret =
-            kSecret;
+        app_.get_middleware<fitplan::middleware::JwtAuthMiddleware>().secret = kSecret;
         fitplan::controllers::register_auth_routes(app_, auth_);
         fitplan::controllers::register_exercise_routes(app_, exercises_);
         fitplan::controllers::register_plan_routes(app_, plans_);
         fitplan::controllers::register_trainee_routes(app_, users_, roster_);
         fitplan::controllers::register_session_routes(app_, session_svc_);
-        fitplan::controllers::register_progress_routes(app_, session_svc_,
-                                                       roster_, exercises_);
+        fitplan::controllers::register_progress_routes(app_, session_svc_, roster_, exercises_);
         app_.bindaddr("127.0.0.1").port(0);
         server_ = std::thread([this] { app_.run(); });
         app_.wait_for_server_start();
@@ -61,36 +61,34 @@ protected:
         other_ = reg("o@it.com", "trainee");
         trainee_id_ = user_id(trainee_);
 
-        ASSERT_EQ(req("POST", "/api/trainees", R"({"email":"t@it.com"})", coach_)
-                      .status,
-                  201);
+        ASSERT_EQ(req("POST", "/api/trainees", R"({"email":"t@it.com"})", coach_).status, 201);
         ex1_ = make_exercise(
             R"({"name":"Squat","video_url":"https://www.youtube.com/watch?v=ultWZbUMPL8"})");
         ex2_ = make_exercise(R"({"name":"Bench"})");
 
-        const std::string plan_body =
-            R"({"trainee_id":)" + std::to_string(trainee_id_) +
-            R"(,"name":"W1","items":[)"
-            R"({"exercise_id":)" + std::to_string(ex1_) +
-            R"(,"target_sets":3,"target_reps":5},)"
-            R"({"exercise_id":)" + std::to_string(ex2_) +
-            R"(,"target_sets":2,"target_reps":8}]})";
+        const std::string plan_body = R"({"trainee_id":)" + std::to_string(trainee_id_) +
+                                      R"(,"name":"W1","items":[)"
+                                      R"({"exercise_id":)" +
+                                      std::to_string(ex1_) +
+                                      R"(,"target_sets":3,"target_reps":5},)"
+                                      R"({"exercise_id":)" +
+                                      std::to_string(ex2_) +
+                                      R"(,"target_sets":2,"target_reps":8}]})";
         auto created = req("POST", "/api/plans", plan_body, coach_);
         ASSERT_EQ(created.status, 201) << created.body;
         plan_id_ = json_number(created.body, "id");
         // header id is the first "id"; the two item ids follow.
         item1_ = nth_number(created.body, "id", 2);
         item2_ = nth_number(created.body, "id", 3);
-        ASSERT_EQ(req("POST",
-                      "/api/plans/" + std::to_string(plan_id_) + "/assign", "",
-                      coach_)
-                      .status,
-                  200);
+        ASSERT_EQ(
+            req("POST", "/api/plans/" + std::to_string(plan_id_) + "/assign", "", coach_).status,
+            200);
     }
 
     void TearDown() override {
         app_.stop();
-        if (server_.joinable()) server_.join();
+        if (server_.joinable())
+            server_.join();
     }
 
     std::string reg(const std::string& email, const std::string& role) {
@@ -102,8 +100,8 @@ protected:
         return json_string(r.body, "access_token");
     }
 
-    HttpResponse req(const std::string& method, const std::string& path,
-                     const std::string& body, const std::string& tok) {
+    HttpResponse req(const std::string& method, const std::string& path, const std::string& body,
+                     const std::string& tok) {
         return http_request(port_, method, path, body, tok);
     }
 
@@ -118,13 +116,13 @@ protected:
     }
 
     // The Nth (1-based) integer value for "key": in a JSON body.
-    static long long nth_number(const std::string& body, const std::string& key,
-                                int n) {
+    static long long nth_number(const std::string& body, const std::string& key, int n) {
         const std::string needle = "\"" + key + "\":";
         std::size_t pos = 0;
         for (int i = 0; i < n; ++i) {
             pos = body.find(needle, i == 0 ? 0 : pos + 1);
-            if (pos == std::string::npos) return -1;
+            if (pos == std::string::npos)
+                return -1;
         }
         return std::strtoll(body.c_str() + pos + needle.size(), nullptr, 10);
     }
@@ -135,25 +133,23 @@ protected:
     // server defaults it to now, which keeps it inside the weekly-streak window.
     std::string log_body(const std::string& performed_at) const {
         const std::string when =
-            performed_at.empty()
-                ? std::string()
-                : R"("performed_at":")" + performed_at + R"(",)";
+            performed_at.empty() ? std::string() : R"("performed_at":")" + performed_at + R"(",)";
         return R"({"plan_id":)" + std::to_string(plan_id_) + R"(,)" + when +
                R"("sets":[)"
-               R"({"exercise_id":)" + std::to_string(ex1_) +
-               R"(,"plan_item_id":)" + std::to_string(item1_) +
+               R"({"exercise_id":)" +
+               std::to_string(ex1_) + R"(,"plan_item_id":)" + std::to_string(item1_) +
                R"(,"reps":5,"weight":100},)"
-               R"({"exercise_id":)" + std::to_string(ex1_) +
-               R"(,"plan_item_id":)" + std::to_string(item1_) +
+               R"({"exercise_id":)" +
+               std::to_string(ex1_) + R"(,"plan_item_id":)" + std::to_string(item1_) +
                R"(,"reps":5,"weight":100},)"
-               R"({"exercise_id":)" + std::to_string(ex1_) +
-               R"(,"plan_item_id":)" + std::to_string(item1_) +
+               R"({"exercise_id":)" +
+               std::to_string(ex1_) + R"(,"plan_item_id":)" + std::to_string(item1_) +
                R"(,"reps":5,"weight":100},)"
-               R"({"exercise_id":)" + std::to_string(ex2_) +
-               R"(,"plan_item_id":)" + std::to_string(item2_) +
+               R"({"exercise_id":)" +
+               std::to_string(ex2_) + R"(,"plan_item_id":)" + std::to_string(item2_) +
                R"(,"reps":8,"weight":60},)"
-               R"({"exercise_id":)" + std::to_string(ex2_) +
-               R"(,"plan_item_id":)" + std::to_string(item2_) +
+               R"({"exercise_id":)" +
+               std::to_string(ex2_) + R"(,"plan_item_id":)" + std::to_string(item2_) +
                R"(,"reps":8,"weight":60}]})";
     }
 
@@ -168,11 +164,10 @@ protected:
     fitplan::repositories::SessionRepository sessions_{db_.connection()};
     fitplan::repositories::SessionSetRepository session_sets_{db_.connection()};
     fitplan::services::AuthService auth_{users_, kSecret, 3600};
-    fitplan::services::PlanService plans_{db_.connection(), plan_repo_,
-                                          plan_items_, roster_, exercises_};
-    fitplan::services::SessionService session_svc_{
-        db_.connection(), sessions_,   session_sets_,
-        plan_repo_,       plan_items_, exercises_};
+    fitplan::services::PlanService plans_{db_.connection(), plan_repo_, plan_items_, roster_,
+                                          exercises_};
+    fitplan::services::SessionService session_svc_{db_.connection(), sessions_,   session_sets_,
+                                                   plan_repo_,       plan_items_, exercises_};
     fitplan::app::FitPlanApp app_;
     std::thread server_;
     std::uint16_t port_ = 0;
@@ -185,8 +180,7 @@ TEST_F(SessionFlowTest, MyPlanReturnsActivePlanWithEffectiveVideoUrl) {
     auto r = req("GET", "/api/my/plan", "", trainee_);
     ASSERT_EQ(r.status, 200) << r.body;
     // item 1 has no override, so it inherits the exercise's library link
-    EXPECT_NE(r.body.find("youtube-nocookie.com/embed/ultWZbUMPL8"),
-              std::string::npos);
+    EXPECT_NE(r.body.find("youtube-nocookie.com/embed/ultWZbUMPL8"), std::string::npos);
     EXPECT_NE(r.body.find(R"("is_active":true)"), std::string::npos);
 }
 
@@ -213,47 +207,36 @@ TEST_F(SessionFlowTest, LogListPatchAndDeleteASession) {
 
     // PATCH can also replace the whole set list; numbering restarts at 1.
     auto reset = req("PATCH", "/api/my/sessions/" + std::to_string(sid),
-                     R"({"sets":[{"exercise_id":)" + std::to_string(ex1_) +
-                         R"(,"plan_item_id":)" + std::to_string(item1_) +
-                         R"(,"reps":3,"weight":120}]})",
+                     R"({"sets":[{"exercise_id":)" + std::to_string(ex1_) + R"(,"plan_item_id":)" +
+                         std::to_string(item1_) + R"(,"reps":3,"weight":120}]})",
                      trainee_);
     ASSERT_EQ(reset.status, 200) << reset.body;
     EXPECT_NE(reset.body.find(R"("reps":3)"), std::string::npos);
     EXPECT_EQ(reset.body.find(R"("set_number":5)"), std::string::npos);
 
     // a replacement set pointing off the active plan is rejected
-    EXPECT_EQ(req("PATCH", "/api/my/sessions/" + std::to_string(sid),
-                  R"({"sets":[{"exercise_id":)" + std::to_string(ex1_) +
-                      R"(,"plan_item_id":99999}]})",
-                  trainee_)
-                  .status,
-              403);
+    EXPECT_EQ(
+        req("PATCH", "/api/my/sessions/" + std::to_string(sid),
+            R"({"sets":[{"exercise_id":)" + std::to_string(ex1_) + R"(,"plan_item_id":99999}]})",
+            trainee_)
+            .status,
+        403);
 
     // another trainee cannot patch it
-    EXPECT_EQ(req("PATCH", "/api/my/sessions/" + std::to_string(sid),
-                  R"({"status":"completed"})", other_)
-                  .status,
-              404);
+    EXPECT_EQ(
+        req("PATCH", "/api/my/sessions/" + std::to_string(sid), R"({"status":"completed"})", other_)
+            .status,
+        404);
 
     // delete: not the owner => 404, owner => 204, then it is gone
-    EXPECT_EQ(
-        req("DELETE", "/api/my/sessions/" + std::to_string(sid), "", other_)
-            .status,
-        404);
-    EXPECT_EQ(
-        req("DELETE", "/api/my/sessions/" + std::to_string(sid), "", trainee_)
-            .status,
-        204);
-    EXPECT_EQ(
-        req("DELETE", "/api/my/sessions/" + std::to_string(sid), "", trainee_)
-            .status,
-        404);
+    EXPECT_EQ(req("DELETE", "/api/my/sessions/" + std::to_string(sid), "", other_).status, 404);
+    EXPECT_EQ(req("DELETE", "/api/my/sessions/" + std::to_string(sid), "", trainee_).status, 204);
+    EXPECT_EQ(req("DELETE", "/api/my/sessions/" + std::to_string(sid), "", trainee_).status, 404);
 }
 
 TEST_F(SessionFlowTest, ProgressNumbersAddUp) {
     // logged "today" so it lands in the current ISO week
-    ASSERT_EQ(req("POST", "/api/my/sessions", log_body(""), trainee_).status,
-              201);
+    ASSERT_EQ(req("POST", "/api/my/sessions", log_body(""), trainee_).status, 201);
 
     auto p = req("GET", "/api/my/progress", "", trainee_);
     ASSERT_EQ(p.status, 200) << p.body;
@@ -268,49 +251,38 @@ TEST_F(SessionFlowTest, ProgressNumbersAddUp) {
 }
 
 TEST_F(SessionFlowTest, CoachSeesRosterTraineeProgressButNotOthers) {
-    ASSERT_EQ(
-        req("POST", "/api/my/sessions", log_body_last_week(), trainee_).status,
-        201);
+    ASSERT_EQ(req("POST", "/api/my/sessions", log_body_last_week(), trainee_).status, 201);
 
-    auto ok = req("GET", "/api/trainees/" + std::to_string(trainee_id_) +
-                             "/progress",
-                  "", coach_);
+    auto ok = req("GET", "/api/trainees/" + std::to_string(trainee_id_) + "/progress", "", coach_);
     EXPECT_EQ(ok.status, 200) << ok.body;
     EXPECT_NE(ok.body.find(R"("total_volume":2460.0)"), std::string::npos);
 
     const long long other_id = user_id(other_);
-    EXPECT_EQ(req("GET",
-                  "/api/trainees/" + std::to_string(other_id) + "/progress", "",
-                  coach_)
-                  .status,
-              404);  // not on the coach's roster
+    EXPECT_EQ(
+        req("GET", "/api/trainees/" + std::to_string(other_id) + "/progress", "", coach_).status,
+        404);  // not on the coach's roster
 }
 
 TEST_F(SessionFlowTest, ValidationAndRoleMatrix) {
     // unknown exercise in a set
-    EXPECT_EQ(req("POST", "/api/my/sessions",
-                  R"({"sets":[{"exercise_id":99999}]})", trainee_)
-                  .status,
-              400);
+    EXPECT_EQ(
+        req("POST", "/api/my/sessions", R"({"sets":[{"exercise_id":99999}]})", trainee_).status,
+        400);
     // a set links a plan item that is not on the active plan
-    EXPECT_EQ(req("POST", "/api/my/sessions",
-                  R"({"sets":[{"exercise_id":)" + std::to_string(ex1_) +
-                      R"(,"plan_item_id":424242}]})",
-                  trainee_)
-                  .status,
-              403);
+    EXPECT_EQ(
+        req("POST", "/api/my/sessions",
+            R"({"sets":[{"exercise_id":)" + std::to_string(ex1_) + R"(,"plan_item_id":424242}]})",
+            trainee_)
+            .status,
+        403);
     // bad status value
-    EXPECT_EQ(req("POST", "/api/my/sessions", R"({"status":"done","sets":[]})",
-                  trainee_)
-                  .status,
+    EXPECT_EQ(req("POST", "/api/my/sessions", R"({"status":"done","sets":[]})", trainee_).status,
               400);
 
     // role + token enforcement
     EXPECT_EQ(req("GET", "/api/my/plan", "", coach_).status, 403);
     EXPECT_EQ(req("GET", "/api/my/progress", "", coach_).status, 403);
-    EXPECT_EQ(req("GET",
-                  "/api/trainees/" + std::to_string(trainee_id_) + "/progress",
-                  "", trainee_)
+    EXPECT_EQ(req("GET", "/api/trainees/" + std::to_string(trainee_id_) + "/progress", "", trainee_)
                   .status,
               403);
     EXPECT_EQ(http_request(port_, "GET", "/api/my/sessions", "").status, 401);

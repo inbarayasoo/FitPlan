@@ -23,9 +23,8 @@ json parse_object_or_throw(const std::string& body) {
 
 std::string required_string(const json& obj, const char* key) {
     if (!obj.contains(key) || !obj.at(key).is_string()) {
-        throw services::AuthError(
-            services::AuthErrorKind::kInvalidInput,
-            std::string("missing or non-string field: ") + key);
+        throw services::AuthError(services::AuthErrorKind::kInvalidInput,
+                                  std::string("missing or non-string field: ") + key);
     }
     return obj.at(key).get<std::string>();
 }

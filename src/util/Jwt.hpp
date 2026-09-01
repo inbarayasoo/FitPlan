@@ -21,7 +21,6 @@ std::string make_access_token(std::int64_t user_id, const std::string& role,
 // Checks signature, issuer, and expiry against `secret`. Returns the claims on
 // success, or std::nullopt if the token is malformed, tampered, expired, or
 // signed with a different secret. Never throws.
-std::optional<TokenClaims> verify_access_token(const std::string& token,
-                                               const std::string& secret);
+std::optional<TokenClaims> verify_access_token(const std::string& token, const std::string& secret);
 
 }  // namespace fitplan::util

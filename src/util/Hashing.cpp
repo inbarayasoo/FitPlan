@@ -27,8 +27,7 @@ std::string hash_password(const std::string& password) {
     ensure_sodium_initialised();
 
     char hashed[crypto_pwhash_STRBYTES];
-    if (crypto_pwhash_str(hashed,
-                          password.c_str(), password.size(),
+    if (crypto_pwhash_str(hashed, password.c_str(), password.size(),
                           crypto_pwhash_OPSLIMIT_INTERACTIVE,
                           crypto_pwhash_MEMLIMIT_INTERACTIVE) != 0) {
         throw std::runtime_error("password hashing failed (out of memory?)");
@@ -42,8 +41,7 @@ bool verify_password(const std::string& hash, const std::string& password) {
     if (hash.empty()) {
         return false;
     }
-    return crypto_pwhash_str_verify(hash.c_str(),
-                                    password.c_str(), password.size()) == 0;
+    return crypto_pwhash_str_verify(hash.c_str(), password.c_str(), password.size()) == 0;
 }
 
 }  // namespace fitplan::util

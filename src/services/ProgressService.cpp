@@ -1,8 +1,8 @@
 #include "services/ProgressService.hpp"
-#include <map>
 #include <algorithm>
-#include <set>
 #include <chrono>
+#include <map>
+#include <set>
 #include <sstream>
 
 namespace fitplan::services {
@@ -28,8 +28,7 @@ double ProgressService::total_volume(const std::vector<LoggedSet>& sets) {
     return total;
 }
 
-std::vector<SeriesPoint> ProgressService::to_series(
-    const std::map<std::string, double>& by_day) {
+std::vector<SeriesPoint> ProgressService::to_series(const std::map<std::string, double>& by_day) {
     std::vector<SeriesPoint> series;
     series.reserve(by_day.size());
     for (const auto& [date, value] : by_day) {
@@ -38,8 +37,7 @@ std::vector<SeriesPoint> ProgressService::to_series(
     return series;
 }
 
-std::vector<SeriesPoint> ProgressService::volume_over_time(
-    const std::vector<LoggedSet>& sets) {
+std::vector<SeriesPoint> ProgressService::volume_over_time(const std::vector<LoggedSet>& sets) {
     std::map<std::string, double> by_day;
     for (const LoggedSet& set : sets) {
         const double v = set_volume(set);
@@ -50,8 +48,8 @@ std::vector<SeriesPoint> ProgressService::volume_over_time(
     return to_series(by_day);
 }
 
-std::vector<SeriesPoint> ProgressService::best_e1rm_over_time(
-    const std::vector<LoggedSet>& sets, std::int64_t exercise_id) {
+std::vector<SeriesPoint> ProgressService::best_e1rm_over_time(const std::vector<LoggedSet>& sets,
+                                                              std::int64_t exercise_id) {
     std::map<std::string, double> best_by_day;
     for (const LoggedSet& set : sets) {
         // 1. only this exercise
@@ -104,8 +102,7 @@ double ProgressService::adherence(const std::vector<LoggedSet>& sets,
         ++completed_prescribed;
     }
 
-    const double ratio =
-        static_cast<double>(completed_prescribed) / total_prescribed;
+    const double ratio = static_cast<double>(completed_prescribed) / total_prescribed;
     return std::min(ratio, 1.0);
 }
 
@@ -122,8 +119,7 @@ std::optional<double> ProgressService::epley_1rm(const LoggedSet& set) {
     return *set.weight * (1.0 + *set.reps / 30.0);
 }
 
-std::optional<std::chrono::sys_days> ProgressService::parse_iso_date(
-    const std::string& text) {
+std::optional<std::chrono::sys_days> ProgressService::parse_iso_date(const std::string& text) {
     int year = 0;
     int month = 0;
     int day = 0;
@@ -136,24 +132,21 @@ std::optional<std::chrono::sys_days> ProgressService::parse_iso_date(
         return std::nullopt;
     }
 
-    const std::chrono::year_month_day ymd{
-        std::chrono::year{year},
-        std::chrono::month{static_cast<unsigned>(month)},
-        std::chrono::day{static_cast<unsigned>(day)}};
+    const std::chrono::year_month_day ymd{std::chrono::year{year},
+                                          std::chrono::month{static_cast<unsigned>(month)},
+                                          std::chrono::day{static_cast<unsigned>(day)}};
     if (!ymd.ok()) {
         return std::nullopt;
     }
     return std::chrono::sys_days{ymd};
 }
 
-std::chrono::sys_days ProgressService::monday_of_week(
-    std::chrono::sys_days day) {
+std::chrono::sys_days ProgressService::monday_of_week(std::chrono::sys_days day) {
     const std::chrono::weekday wd{day};
     return day - (wd - std::chrono::Monday);
 }
 
-int ProgressService::weekly_streak(const std::vector<LoggedSet>& sets,
-                                   const std::string& as_of) {
+int ProgressService::weekly_streak(const std::vector<LoggedSet>& sets, const std::string& as_of) {
     const std::optional<std::chrono::sys_days> today = parse_iso_date(as_of);
     if (!today) {
         return 0;
@@ -161,8 +154,7 @@ int ProgressService::weekly_streak(const std::vector<LoggedSet>& sets,
 
     std::set<std::chrono::sys_days> trained_weeks;
     for (const LoggedSet& set : sets) {
-        const std::optional<std::chrono::sys_days> day =
-            parse_iso_date(set.performed_on);
+        const std::optional<std::chrono::sys_days> day = parse_iso_date(set.performed_on);
         if (day) {
             trained_weeks.insert(monday_of_week(*day));
         }

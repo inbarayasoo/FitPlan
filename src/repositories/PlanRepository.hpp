@@ -29,8 +29,7 @@ public:
 
     // The trainee's single active plan, or std::nullopt if none is active.
     // The assign flow keeps at most one active plan per trainee.
-    std::optional<models::WorkoutPlan> find_active_for_trainee(
-        std::int64_t trainee_id);
+    std::optional<models::WorkoutPlan> find_active_for_trainee(std::int64_t trainee_id);
 
     // Updates the editable header fields (name, notes) of the row with p.id.
     // Activation is a separate concern - see set_active(). Returns true if a row

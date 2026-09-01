@@ -1,15 +1,13 @@
 #include "services/PlanService.hpp"
 
-#include "services/PlanError.hpp"
 #include <string>
+#include "services/PlanError.hpp"
 
 #include "models/Exercise.hpp"
 
 namespace fitplan::services {
 
-
-models::WorkoutPlan PlanService::owned_plan_or_throw(std::int64_t coach_id,
-                                                    std::int64_t plan_id) {
+models::WorkoutPlan PlanService::owned_plan_or_throw(std::int64_t coach_id, std::int64_t plan_id) {
     const std::optional<models::WorkoutPlan> found = plans_.find_by_id(plan_id);
     if (!found || found->coach_id != coach_id) {
         throw PlanError(PlanErrorKind::kNotFound, "no plan with that id");
@@ -17,49 +15,40 @@ models::WorkoutPlan PlanService::owned_plan_or_throw(std::int64_t coach_id,
     return *found;
 }
 
-void PlanService::validate_and_check_ownership(std::int64_t coach_id,
-                                              const PlanInput& input) {
+void PlanService::validate_and_check_ownership(std::int64_t coach_id, const PlanInput& input) {
     if (input.name.find_first_not_of(" \t\r\n") == std::string::npos) {
-        throw PlanError(PlanErrorKind::kInvalidInput,
-                        "plan name must not be blank");
+        throw PlanError(PlanErrorKind::kInvalidInput, "plan name must not be blank");
     }
     if (input.items.empty()) {
-        throw PlanError(PlanErrorKind::kInvalidInput,
-                        "a plan needs at least one item");
+        throw PlanError(PlanErrorKind::kInvalidInput, "a plan needs at least one item");
     }
     if (!roster_.is_linked(coach_id, input.trainee_id)) {
-        throw PlanError(PlanErrorKind::kForbidden,
-                        "that trainee is not on your roster");
+        throw PlanError(PlanErrorKind::kForbidden, "that trainee is not on your roster");
     }
 
     for (const PlanItemInput& item : input.items) {
-        const std::optional<models::Exercise> ex =
-            exercises_.find_by_id(item.exercise_id);
+        const std::optional<models::Exercise> ex = exercises_.find_by_id(item.exercise_id);
         if (!ex || ex->coach_id != coach_id) {
             throw PlanError(PlanErrorKind::kForbidden,
                             "an item uses an exercise that is not in your library");
         }
         if (item.target_sets && *item.target_sets <= 0) {
-            throw PlanError(PlanErrorKind::kInvalidInput,
-                            "target_sets must be positive");
+            throw PlanError(PlanErrorKind::kInvalidInput, "target_sets must be positive");
         }
         if (item.target_reps && *item.target_reps <= 0) {
-            throw PlanError(PlanErrorKind::kInvalidInput,
-                            "target_reps must be positive");
+            throw PlanError(PlanErrorKind::kInvalidInput, "target_reps must be positive");
         }
         if (item.rest_seconds && *item.rest_seconds < 0) {
-            throw PlanError(PlanErrorKind::kInvalidInput,
-                            "rest_seconds must not be negative");
+            throw PlanError(PlanErrorKind::kInvalidInput, "rest_seconds must not be negative");
         }
         if (item.target_weight && *item.target_weight < 0.0) {
-            throw PlanError(PlanErrorKind::kInvalidInput,
-                            "target_weight must not be negative");
+            throw PlanError(PlanErrorKind::kInvalidInput, "target_weight must not be negative");
         }
     }
 }
 
-std::vector<models::PlanItem> PlanService::replace_items(
-    std::int64_t plan_id, const std::vector<PlanItemInput>& inputs) {
+std::vector<models::PlanItem> PlanService::replace_items(std::int64_t plan_id,
+                                                         const std::vector<PlanItemInput>& inputs) {
     items_.delete_by_plan(plan_id);
 
     std::vector<models::PlanItem> stored;
@@ -85,8 +74,7 @@ std::vector<models::PlanItem> PlanService::replace_items(
     return stored;
 }
 
-PlanWithItems PlanService::create_plan(std::int64_t coach_id,
-                                       const PlanInput& input) {
+PlanWithItems PlanService::create_plan(std::int64_t coach_id, const PlanInput& input) {
     validate_and_check_ownership(coach_id, input);
 
     SQLite::Transaction tx(db_);
@@ -106,8 +94,7 @@ PlanWithItems PlanService::create_plan(std::int64_t coach_id,
     return PlanWithItems{plans_.find_by_id(saved.id).value(), std::move(stored)};
 }
 
-PlanWithItems PlanService::assign_plan(std::int64_t coach_id,
-                                       std::int64_t plan_id) {
+PlanWithItems PlanService::assign_plan(std::int64_t coach_id, std::int64_t plan_id) {
     const models::WorkoutPlan plan = owned_plan_or_throw(coach_id, plan_id);
 
     SQLite::Transaction tx(db_);
@@ -115,13 +102,10 @@ PlanWithItems PlanService::assign_plan(std::int64_t coach_id,
     plans_.set_active(plan_id, true);
     tx.commit();
 
-    return PlanWithItems{plans_.find_by_id(plan_id).value(),
-                         items_.list_by_plan(plan_id)};
+    return PlanWithItems{plans_.find_by_id(plan_id).value(), items_.list_by_plan(plan_id)};
 }
 
-
-PlanWithItems PlanService::update_plan(std::int64_t coach_id,
-                                       std::int64_t plan_id,
+PlanWithItems PlanService::update_plan(std::int64_t coach_id, std::int64_t plan_id,
                                        const PlanInput& input) {
     owned_plan_or_throw(coach_id, plan_id);
     validate_and_check_ownership(coach_id, input);
@@ -149,8 +133,7 @@ void PlanService::delete_plan(std::int64_t coach_id, std::int64_t plan_id) {
     plans_.remove(plan_id);
 }
 
-PlanWithItems PlanService::get_plan(std::int64_t coach_id,
-                                    std::int64_t plan_id) {
+PlanWithItems PlanService::get_plan(std::int64_t coach_id, std::int64_t plan_id) {
     const models::WorkoutPlan header = owned_plan_or_throw(coach_id, plan_id);
     return PlanWithItems{header, items_.list_by_plan(plan_id)};
 }

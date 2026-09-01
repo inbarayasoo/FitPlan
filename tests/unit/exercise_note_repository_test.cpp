@@ -12,7 +12,9 @@ namespace {
 using fitplan::db::Database;
 using fitplan::repositories::ExerciseNoteRepository;
 
-std::string migrations_dir() { return FITPLAN_TEST_MIGRATIONS_DIR; }
+std::string migrations_dir() {
+    return FITPLAN_TEST_MIGRATIONS_DIR;
+}
 
 class ExerciseNoteRepositoryTest : public ::testing::Test {
 protected:

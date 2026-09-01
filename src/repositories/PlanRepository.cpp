@@ -25,8 +25,7 @@ models::WorkoutPlan row_to_plan(SQLite::Statement& stmt) {
     return p;
 }
 
-void bind_optional(SQLite::Statement& stmt, int index,
-                   const std::optional<std::string>& value) {
+void bind_optional(SQLite::Statement& stmt, int index, const std::optional<std::string>& value) {
     if (value.has_value()) {
         stmt.bind(index, *value);
     } else {
@@ -53,8 +52,7 @@ models::WorkoutPlan PlanRepository::create(const models::WorkoutPlan& p) {
 
 std::optional<models::WorkoutPlan> PlanRepository::find_by_id(std::int64_t id) {
     SQLite::Statement stmt(
-        db_,
-        std::string("SELECT ") + kSelectColumns + " FROM workout_plans WHERE id = ?");
+        db_, std::string("SELECT ") + kSelectColumns + " FROM workout_plans WHERE id = ?");
     stmt.bind(1, id);
     if (!stmt.executeStep()) {
         return std::nullopt;
@@ -62,12 +60,10 @@ std::optional<models::WorkoutPlan> PlanRepository::find_by_id(std::int64_t id) {
     return row_to_plan(stmt);
 }
 
-std::vector<models::WorkoutPlan> PlanRepository::list_by_coach(
-    std::int64_t coach_id) {
-    SQLite::Statement stmt(
-        db_, std::string("SELECT ") + kSelectColumns +
-                 " FROM workout_plans WHERE coach_id = ? "
-                 "ORDER BY created_at DESC, id DESC");
+std::vector<models::WorkoutPlan> PlanRepository::list_by_coach(std::int64_t coach_id) {
+    SQLite::Statement stmt(db_, std::string("SELECT ") + kSelectColumns +
+                                    " FROM workout_plans WHERE coach_id = ? "
+                                    "ORDER BY created_at DESC, id DESC");
     stmt.bind(1, coach_id);
 
     std::vector<models::WorkoutPlan> result;
@@ -79,10 +75,9 @@ std::vector<models::WorkoutPlan> PlanRepository::list_by_coach(
 
 std::optional<models::WorkoutPlan> PlanRepository::find_active_for_trainee(
     std::int64_t trainee_id) {
-    SQLite::Statement stmt(
-        db_, std::string("SELECT ") + kSelectColumns +
-                 " FROM workout_plans WHERE trainee_id = ? AND is_active = 1 "
-                 "ORDER BY id DESC LIMIT 1");
+    SQLite::Statement stmt(db_, std::string("SELECT ") + kSelectColumns +
+                                    " FROM workout_plans WHERE trainee_id = ? AND is_active = 1 "
+                                    "ORDER BY id DESC LIMIT 1");
     stmt.bind(1, trainee_id);
     if (!stmt.executeStep()) {
         return std::nullopt;
@@ -91,8 +86,7 @@ std::optional<models::WorkoutPlan> PlanRepository::find_active_for_trainee(
 }
 
 bool PlanRepository::update(const models::WorkoutPlan& p) {
-    SQLite::Statement stmt(
-        db_, "UPDATE workout_plans SET name = ?, notes = ? WHERE id = ?");
+    SQLite::Statement stmt(db_, "UPDATE workout_plans SET name = ?, notes = ? WHERE id = ?");
     stmt.bind(1, p.name);
     bind_optional(stmt, 2, p.notes);
     stmt.bind(3, p.id);
@@ -100,18 +94,16 @@ bool PlanRepository::update(const models::WorkoutPlan& p) {
 }
 
 bool PlanRepository::set_active(std::int64_t plan_id, bool active) {
-    SQLite::Statement stmt(
-        db_, "UPDATE workout_plans SET is_active = ? WHERE id = ?");
+    SQLite::Statement stmt(db_, "UPDATE workout_plans SET is_active = ? WHERE id = ?");
     stmt.bind(1, active ? 1 : 0);
     stmt.bind(2, plan_id);
     return stmt.exec() > 0;
 }
 
 int PlanRepository::deactivate_all_for_trainee(std::int64_t trainee_id) {
-    SQLite::Statement stmt(
-        db_,
-        "UPDATE workout_plans SET is_active = 0 "
-        "WHERE trainee_id = ? AND is_active = 1");
+    SQLite::Statement stmt(db_,
+                           "UPDATE workout_plans SET is_active = 0 "
+                           "WHERE trainee_id = ? AND is_active = 1");
     stmt.bind(1, trainee_id);
     return stmt.exec();
 }

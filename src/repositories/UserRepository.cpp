@@ -6,8 +6,7 @@ namespace fitplan::repositories {
 
 namespace {
 
-constexpr const char* kSelectColumns =
-    "id, email, password_hash, role, display_name, created_at";
+constexpr const char* kSelectColumns = "id, email, password_hash, role, display_name, created_at";
 
 // Column order must match kSelectColumns:
 //   0 id   1 email   2 password_hash   3 role   4 display_name   5 created_at
@@ -25,10 +24,9 @@ models::User row_to_user(SQLite::Statement& stmt) {
 }  // namespace
 
 models::User UserRepository::create(const models::User& u) {
-    SQLite::Statement stmt(
-        db_,
-        "INSERT INTO users (email, password_hash, role, display_name) "
-        "VALUES (?, ?, ?, ?)");
+    SQLite::Statement stmt(db_,
+                           "INSERT INTO users (email, password_hash, role, display_name) "
+                           "VALUES (?, ?, ?, ?)");
     stmt.bind(1, u.email);
     stmt.bind(2, u.password_hash);
     stmt.bind(3, u.role);
@@ -39,8 +37,8 @@ models::User UserRepository::create(const models::User& u) {
 }
 
 std::optional<models::User> UserRepository::find_by_id(std::int64_t id) {
-    SQLite::Statement stmt(
-        db_, std::string("SELECT ") + kSelectColumns + " FROM users WHERE id = ?");
+    SQLite::Statement stmt(db_,
+                           std::string("SELECT ") + kSelectColumns + " FROM users WHERE id = ?");
     stmt.bind(1, id);
     if (!stmt.executeStep()) {
         return std::nullopt;
@@ -49,8 +47,8 @@ std::optional<models::User> UserRepository::find_by_id(std::int64_t id) {
 }
 
 std::optional<models::User> UserRepository::find_by_email(const std::string& email) {
-    SQLite::Statement stmt(
-        db_, std::string("SELECT ") + kSelectColumns + " FROM users WHERE email = ?");
+    SQLite::Statement stmt(db_,
+                           std::string("SELECT ") + kSelectColumns + " FROM users WHERE email = ?");
     stmt.bind(1, email);
     if (!stmt.executeStep()) {
         return std::nullopt;

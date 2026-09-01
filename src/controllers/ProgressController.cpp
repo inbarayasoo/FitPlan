@@ -28,13 +28,12 @@ namespace {
 // Today as "YYYY-MM-DD", UTC. Passed to ProgressService::weekly_streak so that
 // function stays pure (the clock is injected, not read inside it).
 std::string today_iso() {
-    const auto today = std::chrono::floor<std::chrono::days>(
-        std::chrono::system_clock::now());
+    const auto today = std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now());
     const std::chrono::year_month_day ymd{today};
     std::ostringstream out;
-    out << static_cast<int>(ymd.year()) << '-' << std::setfill('0')
-        << std::setw(2) << static_cast<unsigned>(ymd.month()) << '-'
-        << std::setw(2) << static_cast<unsigned>(ymd.day());
+    out << static_cast<int>(ymd.year()) << '-' << std::setfill('0') << std::setw(2)
+        << static_cast<unsigned>(ymd.month()) << '-' << std::setw(2)
+        << static_cast<unsigned>(ymd.day());
     return out.str();
 }
 
@@ -44,10 +43,8 @@ dto::ProgressReport build_report(services::SessionService& sessions,
                                  std::int64_t trainee_id) {
     using services::ProgressService;
 
-    const std::vector<services::LoggedSet> logged =
-        sessions.logged_sets_for(trainee_id);
-    const std::vector<services::PrescribedItem> prescribed =
-        sessions.prescribed_for(trainee_id);
+    const std::vector<services::LoggedSet> logged = sessions.logged_sets_for(trainee_id);
+    const std::vector<services::PrescribedItem> prescribed = sessions.prescribed_for(trainee_id);
 
     dto::ProgressReport report;
     report.trainee_id = trainee_id;
@@ -64,8 +61,7 @@ dto::ProgressReport build_report(services::SessionService& sessions,
     for (const std::int64_t ex_id : exercise_ids) {
         dto::ExerciseE1rmSeries e;
         e.exercise_id = ex_id;
-        if (const std::optional<models::Exercise> ex =
-                exercises.find_by_id(ex_id)) {
+        if (const std::optional<models::Exercise> ex = exercises.find_by_id(ex_id)) {
             e.exercise_name = ex->name;
         }
         e.series = ProgressService::best_e1rm_over_time(logged, ex_id);
@@ -78,45 +74,37 @@ dto::ProgressReport build_report(services::SessionService& sessions,
 
 }  // namespace
 
-void register_progress_routes(app::FitPlanApp& app,
-                              services::SessionService& sessions,
+void register_progress_routes(app::FitPlanApp& app, services::SessionService& sessions,
                               repositories::CoachTraineeRepository& roster,
                               repositories::ExerciseRepository& exercises) {
     // GET /api/my/progress -----------------------------------------------------
     CROW_ROUTE(app, "/api/my/progress")
-        ([&app, &sessions, &exercises](const crow::request& req) {
-            try {
-                const auto& ctx =
-                    app.template get_context<middleware::JwtAuthMiddleware>(req);
-                const util::TokenClaims claims =
-                    http::require_role(ctx, "trainee");
-                return dto::progress_response(
-                    build_report(sessions, exercises, claims.user_id));
-            } catch (const std::exception& ex) {
-                return http::problem_response_for(ex);
-            }
-        });
+    ([&app, &sessions, &exercises](const crow::request& req) {
+        try {
+            const auto& ctx = app.template get_context<middleware::JwtAuthMiddleware>(req);
+            const util::TokenClaims claims = http::require_role(ctx, "trainee");
+            return dto::progress_response(build_report(sessions, exercises, claims.user_id));
+        } catch (const std::exception& ex) {
+            return http::problem_response_for(ex);
+        }
+    });
 
     // GET /api/trainees/<int>/progress -----------------------------------
     CROW_ROUTE(app, "/api/trainees/<int>/progress")
-        ([&app, &sessions, &roster, &exercises](const crow::request& req,
-                                                int trainee_id) {
-            try {
-                const auto& ctx =
-                    app.template get_context<middleware::JwtAuthMiddleware>(req);
-                const util::TokenClaims claims =
-                    http::require_role(ctx, "coach");
+    ([&app, &sessions, &roster, &exercises](const crow::request& req, int trainee_id) {
+        try {
+            const auto& ctx = app.template get_context<middleware::JwtAuthMiddleware>(req);
+            const util::TokenClaims claims = http::require_role(ctx, "coach");
 
-                if (!roster.is_linked(claims.user_id, trainee_id)) {
-                    throw http::ApiError(http::ApiErrorKind::kNotFound,
-                                         "that trainee is not on your roster");
-                }
-                return dto::progress_response(
-                    build_report(sessions, exercises, trainee_id));
-            } catch (const std::exception& ex) {
-                return http::problem_response_for(ex);
+            if (!roster.is_linked(claims.user_id, trainee_id)) {
+                throw http::ApiError(http::ApiErrorKind::kNotFound,
+                                     "that trainee is not on your roster");
             }
-        });
+            return dto::progress_response(build_report(sessions, exercises, trainee_id));
+        } catch (const std::exception& ex) {
+            return http::problem_response_for(ex);
+        }
+    });
 }
 
 }  // namespace fitplan::controllers

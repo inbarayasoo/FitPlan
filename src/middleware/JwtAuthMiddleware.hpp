@@ -26,8 +26,7 @@ struct JwtAuthMiddleware {
         const std::string& header = req.get_header_value("Authorization");
         constexpr std::string_view scheme = "Bearer ";
         if (header.starts_with(scheme)) {
-            ctx.claims =
-                util::verify_access_token(header.substr(scheme.size()), secret);
+            ctx.claims = util::verify_access_token(header.substr(scheme.size()), secret);
         }
     }
 

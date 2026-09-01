@@ -29,10 +29,9 @@ models::ExerciseNote row_to_note(SQLite::Statement& stmt) {
 
 std::vector<models::ExerciseNote> ExerciseNoteRepository::list_for_trainee(
     std::int64_t trainee_id) {
-    SQLite::Statement stmt(db_, std::string("SELECT ") + kSelectColumns +
-                                   kFromJoin +
-                                   " WHERE en.trainee_id = ? "
-                                   "ORDER BY en.updated_at DESC, en.id DESC");
+    SQLite::Statement stmt(db_, std::string("SELECT ") + kSelectColumns + kFromJoin +
+                                    " WHERE en.trainee_id = ? "
+                                    "ORDER BY en.updated_at DESC, en.id DESC");
     stmt.bind(1, trainee_id);
 
     std::vector<models::ExerciseNote> result;
@@ -42,11 +41,10 @@ std::vector<models::ExerciseNote> ExerciseNoteRepository::list_for_trainee(
     return result;
 }
 
-std::optional<models::ExerciseNote> ExerciseNoteRepository::find(
-    std::int64_t trainee_id, std::int64_t exercise_id) {
-    SQLite::Statement stmt(
-        db_, std::string("SELECT ") + kSelectColumns + kFromJoin +
-                 " WHERE en.trainee_id = ? AND en.exercise_id = ?");
+std::optional<models::ExerciseNote> ExerciseNoteRepository::find(std::int64_t trainee_id,
+                                                                 std::int64_t exercise_id) {
+    SQLite::Statement stmt(db_, std::string("SELECT ") + kSelectColumns + kFromJoin +
+                                    " WHERE en.trainee_id = ? AND en.exercise_id = ?");
     stmt.bind(1, trainee_id);
     stmt.bind(2, exercise_id);
     if (!stmt.executeStep()) {
@@ -58,12 +56,11 @@ std::optional<models::ExerciseNote> ExerciseNoteRepository::find(
 models::ExerciseNote ExerciseNoteRepository::upsert(std::int64_t trainee_id,
                                                     std::int64_t exercise_id,
                                                     const std::string& body) {
-    SQLite::Statement stmt(
-        db_,
-        "INSERT INTO exercise_notes (trainee_id, exercise_id, body) "
-        "VALUES (?, ?, ?) "
-        "ON CONFLICT (trainee_id, exercise_id) DO UPDATE SET "
-        "  body = excluded.body, updated_at = datetime('now')");
+    SQLite::Statement stmt(db_,
+                           "INSERT INTO exercise_notes (trainee_id, exercise_id, body) "
+                           "VALUES (?, ?, ?) "
+                           "ON CONFLICT (trainee_id, exercise_id) DO UPDATE SET "
+                           "  body = excluded.body, updated_at = datetime('now')");
     stmt.bind(1, trainee_id);
     stmt.bind(2, exercise_id);
     stmt.bind(3, body);
@@ -71,11 +68,9 @@ models::ExerciseNote ExerciseNoteRepository::upsert(std::int64_t trainee_id,
     return find(trainee_id, exercise_id).value();
 }
 
-bool ExerciseNoteRepository::remove(std::int64_t trainee_id,
-                                    std::int64_t exercise_id) {
-    SQLite::Statement stmt(
-        db_,
-        "DELETE FROM exercise_notes WHERE trainee_id = ? AND exercise_id = ?");
+bool ExerciseNoteRepository::remove(std::int64_t trainee_id, std::int64_t exercise_id) {
+    SQLite::Statement stmt(db_,
+                           "DELETE FROM exercise_notes WHERE trainee_id = ? AND exercise_id = ?");
     stmt.bind(1, trainee_id);
     stmt.bind(2, exercise_id);
     return stmt.exec() > 0;

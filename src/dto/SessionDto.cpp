@@ -133,12 +133,8 @@ json set_to_json(const models::SessionSet& s) {
 json session_to_json(const services::SessionWithSets& sws) {
     const models::WorkoutSession& h = sws.session;
     json out{
-        {"id", h.id},
-        {"trainee_id", h.trainee_id},
-        {"performed_at", h.performed_at},
-        {"status", h.status},
-        {"plan_id", nullptr},
-        {"notes", nullptr},
+        {"id", h.id},         {"trainee_id", h.trainee_id}, {"performed_at", h.performed_at},
+        {"status", h.status}, {"plan_id", nullptr},         {"notes", nullptr},
     };
     put_optional(out, "plan_id", h.plan_id);
     put_optional(out, "notes", h.notes);
@@ -185,8 +181,7 @@ services::SessionPatch parse_session_patch(const std::string& body) {
         if (!obj.at("notes").is_null() && !obj.at("notes").is_string()) {
             invalid("notes must be a string or null");
         }
-        if (obj.at("notes").is_string() &&
-            !obj.at("notes").get<std::string>().empty()) {
+        if (obj.at("notes").is_string() && !obj.at("notes").get<std::string>().empty()) {
             patch.notes = obj.at("notes").get<std::string>();
         }
     }
@@ -206,8 +201,7 @@ crow::response session_response(int status, const services::SessionWithSets& s) 
     return http::json_response(status, session_to_json(s));
 }
 
-crow::response session_list_response(
-    const std::vector<services::SessionWithSets>& sessions) {
+crow::response session_list_response(const std::vector<services::SessionWithSets>& sessions) {
     json arr = json::array();
     for (const services::SessionWithSets& s : sessions) {
         arr.push_back(session_to_json(s));

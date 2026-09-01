@@ -12,8 +12,8 @@ namespace {
 // The only hosts we accept a tutorial link from. Kept tiny on purpose: adding a
 // site is a deliberate one-line change here, reviewed like any other.
 constexpr std::array<std::string_view, 6> kAllowedHosts{
-    "youtube.com",     "www.youtube.com",     "m.youtube.com",
-    "youtu.be",        "instagram.com",       "www.instagram.com",
+    "youtube.com", "www.youtube.com", "m.youtube.com",
+    "youtu.be",    "instagram.com",   "www.instagram.com",
 };
 
 // Characters that may appear in a YouTube video id (the "v" parameter). This is
@@ -25,9 +25,9 @@ bool is_video_id_char(char c) {
 // The pieces of a URL we care about. Everything is a view into the original
 // string, so `Parsed` must not outlive it.
 struct Parsed {
-    std::string host;              // lower-cased, no port, no credentials
-    std::string_view path;         // starts with '/', or empty
-    std::string_view query;        // after '?', without the '?'
+    std::string host;        // lower-cased, no port, no credentials
+    std::string_view path;   // starts with '/', or empty
+    std::string_view query;  // after '?', without the '?'
 };
 
 // A deliberately small https-only URL splitter. Returns nullopt unless the input
@@ -47,8 +47,7 @@ std::optional<Parsed> parse_https_url(const std::string& url) {
     const std::size_t authority_end = rest.find_first_of("/?#");
     const std::string_view authority = rest.substr(0, authority_end);
     std::string_view after_authority =
-        authority_end == std::string_view::npos ? std::string_view{}
-                                                : rest.substr(authority_end);
+        authority_end == std::string_view::npos ? std::string_view{} : rest.substr(authority_end);
 
     if (authority.empty() || authority.find('@') != std::string_view::npos) {
         return std::nullopt;  // empty host, or "credentials@host" spoofing trick
@@ -63,14 +62,12 @@ std::optional<Parsed> parse_https_url(const std::string& url) {
     Parsed out;
     out.host.reserve(host_view.size());
     for (char c : host_view) {
-        out.host.push_back(
-            static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+        out.host.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
     }
 
     // Separate path from query, dropping any "#fragment".
     std::string_view path_and_query = after_authority;
-    if (const std::size_t hash = path_and_query.find('#');
-        hash != std::string_view::npos) {
+    if (const std::size_t hash = path_and_query.find('#'); hash != std::string_view::npos) {
         path_and_query = path_and_query.substr(0, hash);
     }
     if (const std::size_t q = path_and_query.find('?'); q != std::string_view::npos) {
@@ -114,8 +111,8 @@ std::optional<std::string> clean_video_id(std::string_view candidate) {
 }
 
 bool host_is_youtube(std::string_view host) {
-    return host == "youtube.com" || host == "www.youtube.com" ||
-           host == "m.youtube.com" || host == "youtu.be";
+    return host == "youtube.com" || host == "www.youtube.com" || host == "m.youtube.com" ||
+           host == "youtu.be";
 }
 
 }  // namespace

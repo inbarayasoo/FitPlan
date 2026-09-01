@@ -26,8 +26,7 @@ public:
     //   kInvalidInput     - empty field, role not trainee/coach, password < 8
     //   kEmailAlreadyUsed - email already registered
     AuthOutcome register_user(const std::string& email, const std::string& password,
-                              const std::string& role,
-                              const std::string& display_name);
+                              const std::string& role, const std::string& display_name);
 
     // Verifies the password against the stored hash. Throws AuthError:
     //   kInvalidCredentials - no such email, or wrong password

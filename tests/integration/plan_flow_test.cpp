@@ -8,13 +8,13 @@
 #include <string>
 #include <thread>
 
-#include "HttpTestClient.hpp"
 #include "app/App.hpp"
 #include "controllers/AuthController.hpp"
 #include "controllers/ExerciseController.hpp"
 #include "controllers/PlanController.hpp"
 #include "controllers/TraineeController.hpp"
 #include "db/Database.hpp"
+#include "HttpTestClient.hpp"
 #include "middleware/JwtAuthMiddleware.hpp"
 #include "repositories/CoachTraineeRepository.hpp"
 #include "repositories/ExerciseRepository.hpp"
@@ -26,18 +26,19 @@
 
 namespace {
 
-using fitplan::testutil::HttpResponse;
 using fitplan::testutil::http_request;
+using fitplan::testutil::HttpResponse;
 using fitplan::testutil::json_number;
 using fitplan::testutil::json_string;
 
-std::string migrations_dir() { return FITPLAN_TEST_MIGRATIONS_DIR; }
+std::string migrations_dir() {
+    return FITPLAN_TEST_MIGRATIONS_DIR;
+}
 
 class PlanFlowTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        app_.get_middleware<fitplan::middleware::JwtAuthMiddleware>().secret =
-            kSecret;
+        app_.get_middleware<fitplan::middleware::JwtAuthMiddleware>().secret = kSecret;
         fitplan::controllers::register_auth_routes(app_, auth_);
         fitplan::controllers::register_exercise_routes(app_, exercises_);
         fitplan::controllers::register_plan_routes(app_, plans_);
@@ -56,12 +57,8 @@ protected:
         t3_id_ = user_id(t3_);
 
         // A's roster: t1, t2 (not t3). A's library: ex_a1, ex_a2. B owns ex_b.
-        ASSERT_EQ(req("POST", "/api/trainees", R"({"email":"t1@it.com"})", coach_a_)
-                      .status,
-                  201);
-        ASSERT_EQ(req("POST", "/api/trainees", R"({"email":"t2@it.com"})", coach_a_)
-                      .status,
-                  201);
+        ASSERT_EQ(req("POST", "/api/trainees", R"({"email":"t1@it.com"})", coach_a_).status, 201);
+        ASSERT_EQ(req("POST", "/api/trainees", R"({"email":"t2@it.com"})", coach_a_).status, 201);
         ex_a1_ = make_exercise(coach_a_, "Back Squat");
         ex_a2_ = make_exercise(coach_a_, "Bench Press");
         ex_b_ = make_exercise(coach_b_, "Bicep Curl");
@@ -69,7 +66,8 @@ protected:
 
     void TearDown() override {
         app_.stop();
-        if (server_.joinable()) server_.join();
+        if (server_.joinable())
+            server_.join();
     }
 
     std::string reg(const std::string& email, const std::string& role) {
@@ -81,8 +79,8 @@ protected:
         return json_string(r.body, "access_token");
     }
 
-    HttpResponse req(const std::string& method, const std::string& path,
-                     const std::string& body, const std::string& tok) {
+    HttpResponse req(const std::string& method, const std::string& path, const std::string& body,
+                     const std::string& tok) {
         return http_request(port_, method, path, body, tok);
     }
 
@@ -100,9 +98,11 @@ protected:
     std::string plan_body(const std::string& name) {
         return R"({"trainee_id":)" + std::to_string(t1_id_) + R"(,"name":")" + name +
                R"(","items":[)"
-               R"({"exercise_id":)" + std::to_string(ex_a1_) +
+               R"({"exercise_id":)" +
+               std::to_string(ex_a1_) +
                R"(,"day_label":"A","target_sets":5,"target_reps":5,"target_weight":100,"rest_seconds":180},)"
-               R"({"exercise_id":)" + std::to_string(ex_a2_) +
+               R"({"exercise_id":)" +
+               std::to_string(ex_a2_) +
                R"(,"target_sets":3,"target_reps":8,"video_url":"https://youtu.be/dQw4w9WgXcQ"}]})";
     }
 
@@ -115,8 +115,8 @@ protected:
     fitplan::repositories::PlanItemRepository plan_items_{db_.connection()};
     fitplan::repositories::CoachTraineeRepository roster_{db_.connection()};
     fitplan::services::AuthService auth_{users_, kSecret, 3600};
-    fitplan::services::PlanService plans_{db_.connection(), plan_repo_, plan_items_,
-                                          roster_, exercises_};
+    fitplan::services::PlanService plans_{db_.connection(), plan_repo_, plan_items_, roster_,
+                                          exercises_};
     fitplan::app::FitPlanApp app_;
     std::thread server_;
     std::uint16_t port_ = 0;
@@ -126,14 +126,10 @@ protected:
 };
 
 TEST_F(PlanFlowTest, AttachTraineeByEmail) {
-    EXPECT_EQ(req("POST", "/api/trainees", R"({"email":"t1@it.com"})", coach_a_)
-                  .status,
+    EXPECT_EQ(req("POST", "/api/trainees", R"({"email":"t1@it.com"})", coach_a_).status,
               409);  // already attached in SetUp
-    EXPECT_EQ(req("POST", "/api/trainees", R"({"email":"ghost@it.com"})", coach_a_)
-                  .status,
-              404);
-    EXPECT_EQ(req("POST", "/api/trainees", R"({"email":"b@it.com"})", coach_a_)
-                  .status,
+    EXPECT_EQ(req("POST", "/api/trainees", R"({"email":"ghost@it.com"})", coach_a_).status, 404);
+    EXPECT_EQ(req("POST", "/api/trainees", R"({"email":"b@it.com"})", coach_a_).status,
               400);  // that account is a coach
 
     auto roster_a = req("GET", "/api/trainees", "", coach_a_);
@@ -163,8 +159,7 @@ TEST_F(PlanFlowTest, CreateReadListAndCrossCoachIsolation) {
     const long long plan_id = json_number(created.body, "id");
     EXPECT_NE(created.body.find(R"("order_index":0)"), std::string::npos);
     EXPECT_NE(created.body.find(R"("order_index":1)"), std::string::npos);
-    EXPECT_NE(created.body.find("youtube-nocookie.com/embed/dQw4w9WgXcQ"),
-              std::string::npos);
+    EXPECT_NE(created.body.find("youtube-nocookie.com/embed/dQw4w9WgXcQ"), std::string::npos);
     EXPECT_NE(created.body.find(R"("is_active":false)"), std::string::npos);
 
     const std::string path = "/api/plans/" + std::to_string(plan_id);
@@ -188,8 +183,8 @@ TEST_F(PlanFlowTest, CreateReadListAndCrossCoachIsolation) {
 TEST_F(PlanFlowTest, CreateRejectsRosterAndOwnershipAndValidationFailures) {
     // trainee not on A's roster
     const std::string t3_body = R"({"trainee_id":)" + std::to_string(t3_id_) +
-                                R"(,"name":"x","items":[{"exercise_id":)" +
-                                std::to_string(ex_a1_) + R"(}]})";
+                                R"(,"name":"x","items":[{"exercise_id":)" + std::to_string(ex_a1_) +
+                                R"(}]})";
     EXPECT_EQ(req("POST", "/api/plans", t3_body, coach_a_).status, 403);
 
     // item references coach B's exercise
@@ -199,23 +194,20 @@ TEST_F(PlanFlowTest, CreateRejectsRosterAndOwnershipAndValidationFailures) {
     EXPECT_EQ(req("POST", "/api/plans", foreign_item, coach_a_).status, 403);
 
     const std::string base = R"({"trainee_id":)" + std::to_string(t1_id_) + ",";
-    EXPECT_EQ(req("POST", "/api/plans", base + R"("name":"x","items":[]})", coach_a_)
-                  .status,
-              400);
-    EXPECT_EQ(req("POST", "/api/plans", base + R"("name":"  ","items":[{"exercise_id":)" +
-                                            std::to_string(ex_a1_) + "}]}",
+    EXPECT_EQ(req("POST", "/api/plans", base + R"("name":"x","items":[]})", coach_a_).status, 400);
+    EXPECT_EQ(req("POST", "/api/plans",
+                  base + R"("name":"  ","items":[{"exercise_id":)" + std::to_string(ex_a1_) + "}]}",
                   coach_a_)
                   .status,
               400);
     EXPECT_EQ(req("POST", "/api/plans",
-                  base + R"("name":"x","items":[{"exercise_id":)" +
-                      std::to_string(ex_a1_) + R"(,"target_sets":0}]})",
+                  base + R"("name":"x","items":[{"exercise_id":)" + std::to_string(ex_a1_) +
+                      R"(,"target_sets":0}]})",
                   coach_a_)
                   .status,
               400);
     EXPECT_EQ(req("POST", "/api/plans",
-                  base + R"("name":"x","items":[{"exercise_id":)" +
-                      std::to_string(ex_a1_) +
+                  base + R"("name":"x","items":[{"exercise_id":)" + std::to_string(ex_a1_) +
                       R"(,"video_url":"https://vimeo.com/1"}]})",
                   coach_a_)
                   .status,
@@ -229,8 +221,7 @@ TEST_F(PlanFlowTest, UpdateReplacesTheItemList) {
 
     const std::string one_item = R"({"trainee_id":)" + std::to_string(t1_id_) +
                                  R"(,"name":"Week 1 - Lower","items":[{"exercise_id":)" +
-                                 std::to_string(ex_a1_) +
-                                 R"(,"target_sets":4,"target_reps":6}]})";
+                                 std::to_string(ex_a1_) + R"(,"target_sets":4,"target_reps":6}]})";
     auto updated = req("PUT", path, one_item, coach_a_);
     ASSERT_EQ(updated.status, 200) << updated.body;
     EXPECT_EQ(json_string(updated.body, "name"), "Week 1 - Lower");
@@ -239,26 +230,20 @@ TEST_F(PlanFlowTest, UpdateReplacesTheItemList) {
     EXPECT_EQ(updated.body.find("Bench Press"), std::string::npos);
 
     auto fetched = req("GET", path, "", coach_a_);
-    EXPECT_EQ(fetched.body.find(R"("exercise_id":)" + std::to_string(ex_a2_)),
-              std::string::npos);
+    EXPECT_EQ(fetched.body.find(R"("exercise_id":)" + std::to_string(ex_a2_)), std::string::npos);
 }
 
 TEST_F(PlanFlowTest, AssignKeepsExactlyOneActivePlanPerTrainee) {
     const long long p1 =
-        json_number(req("POST", "/api/plans", plan_body("Week 1"), coach_a_).body,
-                    "id");
+        json_number(req("POST", "/api/plans", plan_body("Week 1"), coach_a_).body, "id");
     const long long p2 =
-        json_number(req("POST", "/api/plans", plan_body("Week 2"), coach_a_).body,
-                    "id");
+        json_number(req("POST", "/api/plans", plan_body("Week 2"), coach_a_).body, "id");
 
-    auto a1 = req("POST", "/api/plans/" + std::to_string(p1) + "/assign", "",
-                  coach_a_);
+    auto a1 = req("POST", "/api/plans/" + std::to_string(p1) + "/assign", "", coach_a_);
     EXPECT_EQ(a1.status, 200);
     EXPECT_NE(a1.body.find(R"("is_active":true)"), std::string::npos);
 
-    EXPECT_EQ(req("POST", "/api/plans/" + std::to_string(p2) + "/assign", "",
-                  coach_a_)
-                  .status,
+    EXPECT_EQ(req("POST", "/api/plans/" + std::to_string(p2) + "/assign", "", coach_a_).status,
               200);
 
     auto g1 = req("GET", "/api/plans/" + std::to_string(p1), "", coach_a_);
@@ -267,9 +252,7 @@ TEST_F(PlanFlowTest, AssignKeepsExactlyOneActivePlanPerTrainee) {
     EXPECT_NE(g2.body.find(R"("is_active":true)"), std::string::npos);
 
     // assigning a plan that is not this coach's
-    EXPECT_EQ(req("POST", "/api/plans/" + std::to_string(p1) + "/assign", "",
-                  coach_b_)
-                  .status,
+    EXPECT_EQ(req("POST", "/api/plans/" + std::to_string(p1) + "/assign", "", coach_b_).status,
               404);
 }
 

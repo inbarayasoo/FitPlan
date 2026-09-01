@@ -23,7 +23,6 @@ services::SessionPatch parse_session_patch(const std::string& body);
 crow::response session_response(int status, const services::SessionWithSets& s);
 
 // { "sessions": [ <session>, ... ] } - each with its sets.
-crow::response session_list_response(
-    const std::vector<services::SessionWithSets>& sessions);
+crow::response session_list_response(const std::vector<services::SessionWithSets>& sessions);
 
 }  // namespace fitplan::dto

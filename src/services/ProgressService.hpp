@@ -1,11 +1,11 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
-#include <map>
-#include <chrono>
 
 namespace fitplan::services {
 
@@ -54,13 +54,12 @@ public:
 
     // total_volume grouped by calendar day, ascending by date. One point per
     // day that has at least one qualifying set.
-    static std::vector<SeriesPoint> volume_over_time(
-        const std::vector<LoggedSet>& sets);
+    static std::vector<SeriesPoint> volume_over_time(const std::vector<LoggedSet>& sets);
 
     // Highest epley_1rm per calendar day for one exercise, ascending by date.
     // Filters to `exercise_id` first; days with no valid e1RM are skipped.
-    static std::vector<SeriesPoint> best_e1rm_over_time(
-        const std::vector<LoggedSet>& sets, std::int64_t exercise_id);
+    static std::vector<SeriesPoint> best_e1rm_over_time(const std::vector<LoggedSet>& sets,
+                                                        std::int64_t exercise_id);
 
     // Adherence in [0, 1] = completed sets that name a prescribed plan item,
     // divided by the total prescribed set count. 0.0 when nothing is
@@ -71,19 +70,16 @@ public:
     // Consecutive ISO-8601 weeks ending with the week of `as_of` (a
     // "YYYY-MM-DD" date, normally today) in which the trainee logged at least
     // one set. 0 if they did not train in the week of `as_of`.
-    static int weekly_streak(const std::vector<LoggedSet>& sets,
-                             const std::string& as_of);
+    static int weekly_streak(const std::vector<LoggedSet>& sets, const std::string& as_of);
 
 private:
     // A single set's contribution to training volume: reps * weight when the
     // set was completed and both values are positive, otherwise 0.
     static double set_volume(const LoggedSet& set);
-        // Collapse a date -> value map into a series sorted ascending by date.
-    static std::vector<SeriesPoint> to_series(
-        const std::map<std::string, double>& by_day);
-        // Parse a "YYYY-MM-DD" date. std::nullopt if it is not a valid date.
-    static std::optional<std::chrono::sys_days> parse_iso_date(
-        const std::string& text);
+    // Collapse a date -> value map into a series sorted ascending by date.
+    static std::vector<SeriesPoint> to_series(const std::map<std::string, double>& by_day);
+    // Parse a "YYYY-MM-DD" date. std::nullopt if it is not a valid date.
+    static std::optional<std::chrono::sys_days> parse_iso_date(const std::string& text);
 
     // The Monday that starts the week containing `day`. Two dates share a week
     // exactly when this returns the same value for both.

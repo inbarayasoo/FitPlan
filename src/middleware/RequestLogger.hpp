@@ -21,10 +21,9 @@ struct RequestLogger {
 
     void after_handle(crow::request& req, crow::response& res, context& ctx) {
         const auto elapsed = std::chrono::steady_clock::now() - ctx.started_at;
-        const auto micros =
-            std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
-        spdlog::info("{} {} -> {} ({} us)", crow::method_name(req.method), req.url,
-                     res.code, micros);
+        const auto micros = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+        spdlog::info("{} {} -> {} ({} us)", crow::method_name(req.method), req.url, res.code,
+                     micros);
     }
 };
 

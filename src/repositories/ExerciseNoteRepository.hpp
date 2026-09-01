@@ -21,13 +21,12 @@ public:
     // Every note this trainee has, newest change first.
     std::vector<models::ExerciseNote> list_for_trainee(std::int64_t trainee_id);
 
-    std::optional<models::ExerciseNote> find(std::int64_t trainee_id,
-                                             std::int64_t exercise_id);
+    std::optional<models::ExerciseNote> find(std::int64_t trainee_id, std::int64_t exercise_id);
 
     // Inserts the note, or overwrites the body of an existing one for the same
     // (trainee, exercise) pair. Returns the stored row.
-    models::ExerciseNote upsert(std::int64_t trainee_id,
-                                std::int64_t exercise_id, const std::string& body);
+    models::ExerciseNote upsert(std::int64_t trainee_id, std::int64_t exercise_id,
+                                const std::string& body);
 
     // Removes the note for this pair. Returns true if a row was deleted.
     bool remove(std::int64_t trainee_id, std::int64_t exercise_id);

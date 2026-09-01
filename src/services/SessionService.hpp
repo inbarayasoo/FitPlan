@@ -92,8 +92,7 @@ public:
 
     // Apply a PATCH to the trainee's session. Throws SessionError
     // kNotFound / kInvalidInput / kForbidden.
-    SessionWithSets update_session(std::int64_t trainee_id,
-                                   std::int64_t session_id,
+    SessionWithSets update_session(std::int64_t trainee_id, std::int64_t session_id,
                                    const SessionPatch& patch);
 
     // Delete the trainee's session (its sets cascade). Throws
@@ -107,16 +106,13 @@ public:
     std::vector<PrescribedItem> prescribed_for(std::int64_t trainee_id);
 
 private:
-    models::WorkoutSession owned_session_or_throw(std::int64_t trainee_id,
-                                                  std::int64_t session_id);
+    models::WorkoutSession owned_session_or_throw(std::int64_t trainee_id, std::int64_t session_id);
     // Validate a set list the trainee sent: known exercise_id, non-negative
     // numbers, and any plan_item_id must sit on the trainee's active plan.
-    void validate_sets(std::int64_t trainee_id,
-                       const std::vector<SessionSetInput>& sets);
+    void validate_sets(std::int64_t trainee_id, const std::vector<SessionSetInput>& sets);
     // Clear `session_id`'s existing sets and write `sets` in order, numbering
     // from 1. Assumes the caller opened a transaction.
-    void write_sets(std::int64_t session_id,
-                    const std::vector<SessionSetInput>& sets);
+    void write_sets(std::int64_t session_id, const std::vector<SessionSetInput>& sets);
     static void check_status(const std::string& status);
     static std::string date_of(const std::string& timestamp);
 

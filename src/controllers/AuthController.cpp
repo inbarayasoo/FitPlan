@@ -39,10 +39,9 @@ void register_auth_routes(app::FitPlanApp& app, services::AuthService& auth) {
     CROW_ROUTE(app, "/api/auth/register")
         .methods(crow::HTTPMethod::Post)([&auth](const crow::request& req) {
             try {
-                const dto::RegisterRequest body =
-                    dto::parse_register_request(req.body);
-                const services::AuthOutcome outcome = auth.register_user(
-                    body.email, body.password, body.role, body.display_name);
+                const dto::RegisterRequest body = dto::parse_register_request(req.body);
+                const services::AuthOutcome outcome =
+                    auth.register_user(body.email, body.password, body.role, body.display_name);
                 return dto::auth_response(201, outcome);
             } catch (const services::AuthError& err) {
                 return problem_from(err);
@@ -55,8 +54,7 @@ void register_auth_routes(app::FitPlanApp& app, services::AuthService& auth) {
         .methods(crow::HTTPMethod::Post)([&auth](const crow::request& req) {
             try {
                 const dto::LoginRequest body = dto::parse_login_request(req.body);
-                const services::AuthOutcome outcome =
-                    auth.login(body.email, body.password);
+                const services::AuthOutcome outcome = auth.login(body.email, body.password);
                 return dto::auth_response(200, outcome);
             } catch (const services::AuthError& err) {
                 return problem_from(err);
@@ -65,10 +63,10 @@ void register_auth_routes(app::FitPlanApp& app, services::AuthService& auth) {
             }
         });
 
-    CROW_ROUTE(app, "/api/auth/me")([&auth, &app](const crow::request& req) {
+    CROW_ROUTE(app, "/api/auth/me")
+    ([&auth, &app](const crow::request& req) {
         try {
-            const auto& ctx =
-                app.template get_context<middleware::JwtAuthMiddleware>(req);
+            const auto& ctx = app.template get_context<middleware::JwtAuthMiddleware>(req);
             const util::TokenClaims claims = http::require_auth(ctx);
             const models::User user = auth.authenticated_user(claims.user_id);
             return dto::user_response(200, user);

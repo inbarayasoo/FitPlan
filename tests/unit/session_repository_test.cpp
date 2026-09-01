@@ -18,7 +18,9 @@ using fitplan::models::WorkoutSession;
 using fitplan::repositories::SessionRepository;
 using fitplan::repositories::SessionSetRepository;
 
-std::string migrations_dir() { return FITPLAN_TEST_MIGRATIONS_DIR; }
+std::string migrations_dir() {
+    return FITPLAN_TEST_MIGRATIONS_DIR;
+}
 
 class SessionRepositoryTest : public ::testing::Test {
 protected:

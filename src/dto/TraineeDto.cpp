@@ -26,15 +26,13 @@ json user_to_json(const models::User& u) {
 
 AttachTraineeRequest parse_attach_trainee_request(const std::string& body) {
     const json parsed = json::parse(body, nullptr, /*allow_exceptions=*/false);
-    if (!parsed.is_object() || !parsed.contains("email") ||
-        !parsed.at("email").is_string()) {
+    if (!parsed.is_object() || !parsed.contains("email") || !parsed.at("email").is_string()) {
         throw http::ApiError(http::ApiErrorKind::kInvalidInput,
                              "body must be a JSON object with a string \"email\"");
     }
     std::string email = parsed.at("email").get<std::string>();
     if (email.find_first_not_of(" \t\r\n") == std::string::npos) {
-        throw http::ApiError(http::ApiErrorKind::kInvalidInput,
-                             "email must not be blank");
+        throw http::ApiError(http::ApiErrorKind::kInvalidInput, "email must not be blank");
     }
     return AttachTraineeRequest{std::move(email)};
 }

@@ -54,19 +54,16 @@ std::optional<std::string> optional_string(const json& obj, const char* key) {
 
 json exercise_to_json(const models::Exercise& e) {
     json out{
-        {"id", e.id},
-        {"coach_id", e.coach_id},
-        {"name", e.name},
-        {"category", nullptr},
-        {"primary_muscle", nullptr},
-        {"description", nullptr},
-        {"video_url", nullptr},
-        {"video_embed_url", nullptr},
-        {"created_at", e.created_at},
+        {"id", e.id},           {"coach_id", e.coach_id},     {"name", e.name},
+        {"category", nullptr},  {"primary_muscle", nullptr},  {"description", nullptr},
+        {"video_url", nullptr}, {"video_embed_url", nullptr}, {"created_at", e.created_at},
     };
-    if (e.category) out["category"] = *e.category;
-    if (e.primary_muscle) out["primary_muscle"] = *e.primary_muscle;
-    if (e.description) out["description"] = *e.description;
+    if (e.category)
+        out["category"] = *e.category;
+    if (e.primary_muscle)
+        out["primary_muscle"] = *e.primary_muscle;
+    if (e.description)
+        out["description"] = *e.description;
     if (e.video_url) {
         out["video_url"] = *e.video_url;
         if (const auto embed = util::youtube_embed_url(*e.video_url)) {

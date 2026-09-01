@@ -13,8 +13,7 @@ constexpr const char* kSelectColumns =
     "pi.target_sets, pi.target_reps, pi.target_weight, pi.rest_seconds, "
     "pi.notes, pi.video_url, e.name";
 
-constexpr const char* kFromJoin =
-    " FROM plan_items pi JOIN exercises e ON e.id = pi.exercise_id";
+constexpr const char* kFromJoin = " FROM plan_items pi JOIN exercises e ON e.id = pi.exercise_id";
 
 // Column order must match kSelectColumns:
 //   0 id  1 plan_id  2 exercise_id  3 order_index  4 day_label  5 target_sets
@@ -26,13 +25,20 @@ models::PlanItem row_to_item(SQLite::Statement& stmt) {
     it.plan_id = stmt.getColumn(1).getInt64();
     it.exercise_id = stmt.getColumn(2).getInt64();
     it.order_index = stmt.getColumn(3).getInt();
-    if (!stmt.getColumn(4).isNull()) it.day_label = stmt.getColumn(4).getString();
-    if (!stmt.getColumn(5).isNull()) it.target_sets = stmt.getColumn(5).getInt();
-    if (!stmt.getColumn(6).isNull()) it.target_reps = stmt.getColumn(6).getInt();
-    if (!stmt.getColumn(7).isNull()) it.target_weight = stmt.getColumn(7).getDouble();
-    if (!stmt.getColumn(8).isNull()) it.rest_seconds = stmt.getColumn(8).getInt();
-    if (!stmt.getColumn(9).isNull()) it.notes = stmt.getColumn(9).getString();
-    if (!stmt.getColumn(10).isNull()) it.video_url = stmt.getColumn(10).getString();
+    if (!stmt.getColumn(4).isNull())
+        it.day_label = stmt.getColumn(4).getString();
+    if (!stmt.getColumn(5).isNull())
+        it.target_sets = stmt.getColumn(5).getInt();
+    if (!stmt.getColumn(6).isNull())
+        it.target_reps = stmt.getColumn(6).getInt();
+    if (!stmt.getColumn(7).isNull())
+        it.target_weight = stmt.getColumn(7).getDouble();
+    if (!stmt.getColumn(8).isNull())
+        it.rest_seconds = stmt.getColumn(8).getInt();
+    if (!stmt.getColumn(9).isNull())
+        it.notes = stmt.getColumn(9).getString();
+    if (!stmt.getColumn(10).isNull())
+        it.video_url = stmt.getColumn(10).getString();
     it.exercise_name = stmt.getColumn(11).getString();
     return it;
 }
@@ -51,12 +57,11 @@ void bind_optional(SQLite::Statement& stmt, int index, const std::optional<T>& v
 }  // namespace
 
 models::PlanItem PlanItemRepository::create(const models::PlanItem& item) {
-    SQLite::Statement stmt(
-        db_,
-        "INSERT INTO plan_items "
-        "(plan_id, exercise_id, order_index, day_label, target_sets, "
-        " target_reps, target_weight, rest_seconds, notes, video_url) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    SQLite::Statement stmt(db_,
+                           "INSERT INTO plan_items "
+                           "(plan_id, exercise_id, order_index, day_label, target_sets, "
+                           " target_reps, target_weight, rest_seconds, notes, video_url) "
+                           "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     stmt.bind(1, item.plan_id);
     stmt.bind(2, item.exercise_id);
     stmt.bind(3, item.order_index);
@@ -74,8 +79,7 @@ models::PlanItem PlanItemRepository::create(const models::PlanItem& item) {
 
 std::optional<models::PlanItem> PlanItemRepository::find_by_id(std::int64_t id) {
     SQLite::Statement stmt(
-        db_,
-        std::string("SELECT ") + kSelectColumns + kFromJoin + " WHERE pi.id = ?");
+        db_, std::string("SELECT ") + kSelectColumns + kFromJoin + " WHERE pi.id = ?");
     stmt.bind(1, id);
     if (!stmt.executeStep()) {
         return std::nullopt;
@@ -83,12 +87,10 @@ std::optional<models::PlanItem> PlanItemRepository::find_by_id(std::int64_t id) 
     return row_to_item(stmt);
 }
 
-std::vector<models::PlanItem> PlanItemRepository::list_by_plan(
-    std::int64_t plan_id) {
-    SQLite::Statement stmt(
-        db_, std::string("SELECT ") + kSelectColumns + kFromJoin +
-                 " WHERE pi.plan_id = ? "
-                 "ORDER BY pi.order_index ASC, pi.id ASC");
+std::vector<models::PlanItem> PlanItemRepository::list_by_plan(std::int64_t plan_id) {
+    SQLite::Statement stmt(db_, std::string("SELECT ") + kSelectColumns + kFromJoin +
+                                    " WHERE pi.plan_id = ? "
+                                    "ORDER BY pi.order_index ASC, pi.id ASC");
     stmt.bind(1, plan_id);
 
     std::vector<models::PlanItem> result;

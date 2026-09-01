@@ -16,8 +16,7 @@ namespace {
 // "012_add_x.sql" -> 12. Returns -1 when the name does not start with a digit.
 int leading_number(const std::string& filename) {
     std::size_t end = 0;
-    while (end < filename.size() &&
-           std::isdigit(static_cast<unsigned char>(filename[end])) != 0) {
+    while (end < filename.size() && std::isdigit(static_cast<unsigned char>(filename[end])) != 0) {
         ++end;
     }
     if (end == 0) {
@@ -57,9 +56,7 @@ std::vector<MigrationFile> load_migration_files(const std::string& dir) {
     }
 
     std::sort(files.begin(), files.end(),
-              [](const MigrationFile& a, const MigrationFile& b) {
-                  return a.version < b.version;
-              });
+              [](const MigrationFile& a, const MigrationFile& b) { return a.version < b.version; });
 
     for (std::size_t i = 1; i < files.size(); ++i) {
         if (files[i].version == files[i - 1].version) {

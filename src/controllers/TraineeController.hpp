@@ -12,8 +12,7 @@ namespace fitplan::controllers {
 //
 // Both require role "coach". Attaching resolves the email through UserRepository,
 // checks the account is a trainee, then links it via CoachTraineeRepository.
-void register_trainee_routes(app::FitPlanApp& app,
-                             repositories::UserRepository& users,
+void register_trainee_routes(app::FitPlanApp& app, repositories::UserRepository& users,
                              repositories::CoachTraineeRepository& roster);
 
 }  // namespace fitplan::controllers

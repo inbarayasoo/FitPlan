@@ -12,7 +12,6 @@ namespace fitplan::controllers {
 //   PATCH /api/my/sessions/<int>    update a session's status / notes
 //
 // All require role "trainee". The caller's id comes from the JWT, never the body.
-void register_session_routes(app::FitPlanApp& app,
-                             services::SessionService& sessions);
+void register_session_routes(app::FitPlanApp& app, services::SessionService& sessions);
 
 }  // namespace fitplan::controllers

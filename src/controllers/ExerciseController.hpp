@@ -15,7 +15,6 @@ namespace fitplan::controllers {
 // Every route requires a valid token with role "coach"; each row is scoped to
 // the coach that owns it. The controller talks straight to the repository -
 // there is no ExerciseService, because there are no cross-row rules here.
-void register_exercise_routes(app::FitPlanApp& app,
-                              repositories::ExerciseRepository& exercises);
+void register_exercise_routes(app::FitPlanApp& app, repositories::ExerciseRepository& exercises);
 
 }  // namespace fitplan::controllers

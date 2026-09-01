@@ -57,11 +57,7 @@ public:
                 repositories::PlanItemRepository& items,
                 repositories::CoachTraineeRepository& roster,
                 repositories::ExerciseRepository& exercises)
-        : db_(db),
-          plans_(plans),
-          items_(items),
-          roster_(roster),
-          exercises_(exercises) {}
+        : db_(db), plans_(plans), items_(items), roster_(roster), exercises_(exercises) {}
 
     // Insert a new plan (header + items). Throws PlanError:
     //   kInvalidInput - blank name, empty item list, bad target value
@@ -71,8 +67,7 @@ public:
 
     // Replace a plan's editable header fields and its entire item list.
     // Throws PlanError kNotFound / kInvalidInput / kForbidden as above.
-    PlanWithItems update_plan(std::int64_t coach_id, std::int64_t plan_id,
-                              const PlanInput& input);
+    PlanWithItems update_plan(std::int64_t coach_id, std::int64_t plan_id, const PlanInput& input);
 
     // All of this coach's plans, headers only, newest first.
     std::vector<models::WorkoutPlan> list_plans(std::int64_t coach_id);
@@ -92,20 +87,18 @@ public:
 private:
     // Load the plan or throw PlanError(kNotFound) when it is missing or owned by
     // a different coach.
-    models::WorkoutPlan owned_plan_or_throw(std::int64_t coach_id,
-                                            std::int64_t plan_id);
+    models::WorkoutPlan owned_plan_or_throw(std::int64_t coach_id, std::int64_t plan_id);
 
     // Validate `input` and confirm the caller may reference everything in it:
     // non-blank name, at least one item, positive targets, trainee on the
     // roster, every item's exercise in the caller's library.
-    void validate_and_check_ownership(std::int64_t coach_id,
-                                      const PlanInput& input);
+    void validate_and_check_ownership(std::int64_t coach_id, const PlanInput& input);
 
     // Delete every existing item of `plan_id`, then insert `inputs` in order,
     // giving each a zero-based order_index from its position. Returns the stored
     // items. Assumes it runs inside a transaction opened by the caller.
-    std::vector<models::PlanItem> replace_items(
-        std::int64_t plan_id, const std::vector<PlanItemInput>& inputs);
+    std::vector<models::PlanItem> replace_items(std::int64_t plan_id,
+                                                const std::vector<PlanItemInput>& inputs);
 
     SQLite::Database& db_;
     repositories::PlanRepository& plans_;

@@ -19,17 +19,18 @@
 
 namespace {
 
-using fitplan::testutil::HttpResponse;
 using fitplan::testutil::http_request;
+using fitplan::testutil::HttpResponse;
 using fitplan::testutil::json_string;
 
-std::string migrations_dir() { return FITPLAN_TEST_MIGRATIONS_DIR; }
+std::string migrations_dir() {
+    return FITPLAN_TEST_MIGRATIONS_DIR;
+}
 
 class AuthFlowTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        app_.get_middleware<fitplan::middleware::JwtAuthMiddleware>().secret =
-            kSecret;
+        app_.get_middleware<fitplan::middleware::JwtAuthMiddleware>().secret = kSecret;
         fitplan::controllers::register_auth_routes(app_, auth_);
         app_.bindaddr("127.0.0.1").port(0);  // 0 -> the OS picks a free port
         server_ = std::thread([this] { app_.run(); });
@@ -69,8 +70,8 @@ TEST_F(AuthFlowTest, RegisterThenLoginThenMe) {
     EXPECT_EQ(reg.status, 201);
     EXPECT_FALSE(json_string(reg.body, "access_token").empty());
 
-    const auto login = post("/api/auth/login",
-                            R"({"email":"coach@itest.com","password":"password123"})");
+    const auto login =
+        post("/api/auth/login", R"({"email":"coach@itest.com","password":"password123"})");
     ASSERT_EQ(login.status, 200);
     const std::string token = json_string(login.body, "access_token");
     ASSERT_FALSE(token.empty());
@@ -88,18 +89,17 @@ TEST_F(AuthFlowTest, RegisterRejectsADuplicateEmail) {
 }
 
 TEST_F(AuthFlowTest, RegisterRejectsAnInvalidBody) {
-    EXPECT_EQ(post("/api/auth/register",
-                   R"({"email":"x@itest.com","password":"short","role":"coach","display_name":"X"})")
-                  .status,
-              400);
+    EXPECT_EQ(
+        post("/api/auth/register",
+             R"({"email":"x@itest.com","password":"short","role":"coach","display_name":"X"})")
+            .status,
+        400);
     EXPECT_EQ(post("/api/auth/register", "not json").status, 400);
 }
 
 TEST_F(AuthFlowTest, LoginRejectsAWrongPassword) {
     ASSERT_EQ(post("/api/auth/register", kCoachBody).status, 201);
-    EXPECT_EQ(post("/api/auth/login",
-                   R"({"email":"coach@itest.com","password":"nope"})")
-                  .status,
+    EXPECT_EQ(post("/api/auth/login", R"({"email":"coach@itest.com","password":"nope"})").status,
               401);
 }
 

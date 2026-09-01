@@ -116,24 +116,19 @@ int main(int argc, char** argv) {
     fitplan::repositories::PlanRepository plans_repo(database->connection());
     fitplan::repositories::PlanItemRepository plan_items(database->connection());
     fitplan::repositories::CoachTraineeRepository roster(database->connection());
-    fitplan::repositories::ExerciseNoteRepository exercise_notes(
-        database->connection());
+    fitplan::repositories::ExerciseNoteRepository exercise_notes(database->connection());
     fitplan::repositories::SessionRepository sessions_repo(database->connection());
-    fitplan::repositories::SessionSetRepository session_sets(
-        database->connection());
+    fitplan::repositories::SessionSetRepository session_sets(database->connection());
 
-    fitplan::services::AuthService auth(users, config.jwt_secret,
-                                        config.jwt_ttl_seconds);
-    fitplan::services::PlanService plan_service(database->connection(), plans_repo,
-                                                plan_items, roster, exercises);
+    fitplan::services::AuthService auth(users, config.jwt_secret, config.jwt_ttl_seconds);
+    fitplan::services::PlanService plan_service(database->connection(), plans_repo, plan_items,
+                                                roster, exercises);
     fitplan::services::SessionService session_service(
-        database->connection(), sessions_repo, session_sets, plans_repo,
-        plan_items, exercises);
+        database->connection(), sessions_repo, session_sets, plans_repo, plan_items, exercises);
 
     fitplan::app::FitPlanApp app;
     app.loglevel(crow::LogLevel::Warning);
-    app.get_middleware<fitplan::middleware::JwtAuthMiddleware>().secret =
-        config.jwt_secret;
+    app.get_middleware<fitplan::middleware::JwtAuthMiddleware>().secret = config.jwt_secret;
 
     CROW_ROUTE(app, "/api/health")
     ([schema_version]() {
@@ -151,10 +146,9 @@ int main(int argc, char** argv) {
     fitplan::controllers::register_plan_routes(app, plan_service);
     fitplan::controllers::register_trainee_routes(app, users, roster);
     fitplan::controllers::register_session_routes(app, session_service);
-    fitplan::controllers::register_progress_routes(app, session_service, roster,
-                                                   exercises);
-    fitplan::controllers::register_exercise_note_routes(
-        app, exercise_notes, plans_repo, plan_items);
+    fitplan::controllers::register_progress_routes(app, session_service, roster, exercises);
+    fitplan::controllers::register_exercise_note_routes(app, exercise_notes, plans_repo,
+                                                        plan_items);
 
     // Static frontend. Every non-API GET resolves to a file under web_dir, with
     // "/" mapping to index.html. crow::response::set_static_file_info() rejects

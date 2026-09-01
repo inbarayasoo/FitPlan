@@ -14,7 +14,6 @@ namespace fitplan::app {
 // Order = outer to inner: RequestLogger wraps everything (it times the whole
 // request, JWT parsing included); JwtAuthMiddleware runs next and fills the auth
 // context the routes read.
-using FitPlanApp =
-    crow::App<middleware::RequestLogger, middleware::JwtAuthMiddleware>;
+using FitPlanApp = crow::App<middleware::RequestLogger, middleware::JwtAuthMiddleware>;
 
 }  // namespace fitplan::app

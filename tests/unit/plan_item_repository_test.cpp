@@ -14,7 +14,9 @@ using fitplan::db::Database;
 using fitplan::models::PlanItem;
 using fitplan::repositories::PlanItemRepository;
 
-std::string migrations_dir() { return FITPLAN_TEST_MIGRATIONS_DIR; }
+std::string migrations_dir() {
+    return FITPLAN_TEST_MIGRATIONS_DIR;
+}
 
 class PlanItemRepositoryTest : public ::testing::Test {
 protected:
@@ -24,8 +26,7 @@ protected:
             "INSERT INTO users (email, password_hash, role, display_name) "
             "VALUES ('coach@example.com','x','coach','Coach'),"
             "       ('trainee@example.com','x','trainee','Trainee')");
-        c.exec(
-            "INSERT INTO exercises (coach_id, name) VALUES (1, 'Back Squat')");
+        c.exec("INSERT INTO exercises (coach_id, name) VALUES (1, 'Back Squat')");
         c.exec(
             "INSERT INTO workout_plans (coach_id, trainee_id, name) "
             "VALUES (1, 2, 'Week 1')");
@@ -60,7 +61,7 @@ TEST_F(PlanItemRepositoryTest, CreateRoundTripsSetAndUnsetOptionals) {
     EXPECT_DOUBLE_EQ(*saved.target_weight, 100.0);
     ASSERT_TRUE(saved.day_label.has_value());
     EXPECT_EQ(*saved.day_label, "A");
-    EXPECT_FALSE(saved.notes.has_value());     // never set
+    EXPECT_FALSE(saved.notes.has_value());      // never set
     EXPECT_FALSE(saved.video_url.has_value());  // never set
 }
 

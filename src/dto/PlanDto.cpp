@@ -136,12 +136,8 @@ json item_to_json(const models::PlanItem& it) {
 
 json header_to_json(const models::WorkoutPlan& p) {
     json out{
-        {"id", p.id},
-        {"coach_id", p.coach_id},
-        {"trainee_id", p.trainee_id},
-        {"name", p.name},
-        {"is_active", p.is_active},
-        {"created_at", p.created_at},
+        {"id", p.id},       {"coach_id", p.coach_id},   {"trainee_id", p.trainee_id},
+        {"name", p.name},   {"is_active", p.is_active}, {"created_at", p.created_at},
         {"notes", nullptr},
     };
     put_optional(out, "notes", p.notes);
@@ -158,8 +154,7 @@ services::PlanInput parse_plan_request(const std::string& body) {
     input.name = required_string(obj, "name");
     input.notes = optional_string(obj, "notes");
 
-    if (!obj.contains("items") || !obj.at("items").is_array() ||
-        obj.at("items").empty()) {
+    if (!obj.contains("items") || !obj.at("items").is_array() || obj.at("items").empty()) {
         invalid("items must be a non-empty array");
     }
     for (const json& entry : obj.at("items")) {

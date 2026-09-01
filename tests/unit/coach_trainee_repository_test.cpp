@@ -12,7 +12,9 @@ namespace {
 using fitplan::db::Database;
 using fitplan::repositories::CoachTraineeRepository;
 
-std::string migrations_dir() { return FITPLAN_TEST_MIGRATIONS_DIR; }
+std::string migrations_dir() {
+    return FITPLAN_TEST_MIGRATIONS_DIR;
+}
 
 class CoachTraineeRepositoryTest : public ::testing::Test {
 protected:
@@ -25,10 +27,9 @@ protected:
 
     std::int64_t insert_user(const std::string& email, const std::string& role,
                              const std::string& name) {
-        SQLite::Statement stmt(
-            db_.connection(),
-            "INSERT INTO users (email, password_hash, role, display_name) "
-            "VALUES (?, 'x', ?, ?)");
+        SQLite::Statement stmt(db_.connection(),
+                               "INSERT INTO users (email, password_hash, role, display_name) "
+                               "VALUES (?, 'x', ?, ?)");
         stmt.bind(1, email);
         stmt.bind(2, role);
         stmt.bind(3, name);

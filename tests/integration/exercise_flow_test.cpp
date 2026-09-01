@@ -7,11 +7,11 @@
 #include <string>
 #include <thread>
 
-#include "HttpTestClient.hpp"
 #include "app/App.hpp"
 #include "controllers/AuthController.hpp"
 #include "controllers/ExerciseController.hpp"
 #include "db/Database.hpp"
+#include "HttpTestClient.hpp"
 #include "middleware/JwtAuthMiddleware.hpp"
 #include "repositories/ExerciseRepository.hpp"
 #include "repositories/UserRepository.hpp"
@@ -19,18 +19,19 @@
 
 namespace {
 
-using fitplan::testutil::HttpResponse;
 using fitplan::testutil::http_request;
+using fitplan::testutil::HttpResponse;
 using fitplan::testutil::json_number;
 using fitplan::testutil::json_string;
 
-std::string migrations_dir() { return FITPLAN_TEST_MIGRATIONS_DIR; }
+std::string migrations_dir() {
+    return FITPLAN_TEST_MIGRATIONS_DIR;
+}
 
 class ExerciseFlowTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        app_.get_middleware<fitplan::middleware::JwtAuthMiddleware>().secret =
-            kSecret;
+        app_.get_middleware<fitplan::middleware::JwtAuthMiddleware>().secret = kSecret;
         fitplan::controllers::register_auth_routes(app_, auth_);
         fitplan::controllers::register_exercise_routes(app_, exercises_);
         app_.bindaddr("127.0.0.1").port(0);
@@ -45,7 +46,8 @@ protected:
 
     void TearDown() override {
         app_.stop();
-        if (server_.joinable()) server_.join();
+        if (server_.joinable())
+            server_.join();
     }
 
     std::string register_user(const std::string& email, const std::string& role) {
@@ -57,8 +59,8 @@ protected:
         return json_string(r.body, "access_token");
     }
 
-    HttpResponse req(const std::string& method, const std::string& path,
-                     const std::string& body, const std::string& tok) {
+    HttpResponse req(const std::string& method, const std::string& path, const std::string& body,
+                     const std::string& tok) {
         return http_request(port_, method, path, body, tok);
     }
 
@@ -81,15 +83,14 @@ TEST_F(ExerciseFlowTest, CreateReadUpdateDelete) {
     ASSERT_EQ(created.status, 201) << created.body;
     const long long id = json_number(created.body, "id");
     EXPECT_GT(id, 0);
-    EXPECT_NE(created.body.find("youtube-nocookie.com/embed/dQw4w9WgXcQ"),
-              std::string::npos);
+    EXPECT_NE(created.body.find("youtube-nocookie.com/embed/dQw4w9WgXcQ"), std::string::npos);
 
     const std::string path = "/api/exercises/" + std::to_string(id);
     EXPECT_EQ(req("GET", path, "", coach_a_).status, 200);
 
-    auto updated = req("PUT", path,
-                       R"({"name":"Paused Squat","video_url":"https://youtu.be/dQw4w9WgXcQ"})",
-                       coach_a_);
+    auto updated =
+        req("PUT", path, R"({"name":"Paused Squat","video_url":"https://youtu.be/dQw4w9WgXcQ"})",
+            coach_a_);
     EXPECT_EQ(updated.status, 200);
     EXPECT_EQ(json_string(updated.body, "name"), "Paused Squat");
 
@@ -100,8 +101,7 @@ TEST_F(ExerciseFlowTest, CreateReadUpdateDelete) {
 
 TEST_F(ExerciseFlowTest, ListIsScopedToTheOwningCoach) {
     ASSERT_EQ(req("POST", "/api/exercises", kSquat, coach_a_).status, 201);
-    ASSERT_EQ(req("POST", "/api/exercises", R"({"name":"Deadlift"})", coach_a_).status,
-              201);
+    ASSERT_EQ(req("POST", "/api/exercises", R"({"name":"Deadlift"})", coach_a_).status, 201);
 
     auto list_a = req("GET", "/api/exercises", "", coach_a_);
     EXPECT_EQ(list_a.status, 200);
@@ -115,8 +115,7 @@ TEST_F(ExerciseFlowTest, ListIsScopedToTheOwningCoach) {
 
 TEST_F(ExerciseFlowTest, OneCoachCannotTouchAnothersRow) {
     auto created = req("POST", "/api/exercises", kSquat, coach_a_);
-    const std::string path =
-        "/api/exercises/" + std::to_string(json_number(created.body, "id"));
+    const std::string path = "/api/exercises/" + std::to_string(json_number(created.body, "id"));
 
     EXPECT_EQ(req("GET", path, "", coach_b_).status, 404);
     EXPECT_EQ(req("PUT", path, R"({"name":"hijack"})", coach_b_).status, 404);
@@ -129,12 +128,11 @@ TEST_F(ExerciseFlowTest, RejectsBadInput) {
                   R"({"name":"x","video_url":"http://youtube.com/watch?v=a"})", coach_a_)
                   .status,
               400);
-    EXPECT_EQ(req("POST", "/api/exercises",
-                  R"({"name":"x","video_url":"https://vimeo.com/1"})", coach_a_)
-                  .status,
-              400);
-    EXPECT_EQ(req("POST", "/api/exercises", R"({"name":"   "})", coach_a_).status,
-              400);
+    EXPECT_EQ(
+        req("POST", "/api/exercises", R"({"name":"x","video_url":"https://vimeo.com/1"})", coach_a_)
+            .status,
+        400);
+    EXPECT_EQ(req("POST", "/api/exercises", R"({"name":"   "})", coach_a_).status, 400);
     EXPECT_EQ(req("POST", "/api/exercises", "not json", coach_a_).status, 400);
 }
 
@@ -142,8 +140,7 @@ TEST_F(ExerciseFlowTest, RoleAndTokenAreEnforced) {
     EXPECT_EQ(req("GET", "/api/exercises", "", trainee_).status, 403);
     EXPECT_EQ(req("POST", "/api/exercises", kSquat, trainee_).status, 403);
     EXPECT_EQ(http_request(port_, "GET", "/api/exercises", "").status, 401);
-    EXPECT_EQ(http_request(port_, "GET", "/api/exercises", "", "not.a.jwt").status,
-              401);
+    EXPECT_EQ(http_request(port_, "GET", "/api/exercises", "", "not.a.jwt").status, 401);
 }
 
 }  // namespace

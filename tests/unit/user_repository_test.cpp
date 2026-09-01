@@ -13,7 +13,9 @@ using fitplan::db::Database;
 using fitplan::models::User;
 using fitplan::repositories::UserRepository;
 
-std::string migrations_dir() { return FITPLAN_TEST_MIGRATIONS_DIR; }
+std::string migrations_dir() {
+    return FITPLAN_TEST_MIGRATIONS_DIR;
+}
 
 class UserRepositoryTest : public ::testing::Test {
 protected:
