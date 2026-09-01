@@ -1,4 +1,18 @@
 ---
+# Enable the bug-finding and modernization families, then switch off the checks
+# that fight this codebase's deliberate choices:
+#   - avoid-const-or-ref-data-members: controllers/services/repositories hold their
+#     collaborators by reference on purpose (constructor dependency injection).
+#   - unchecked-optional-access: a repository .value() immediately after a
+#     successful INSERT is an intentional invariant assertion; it throws, and the
+#     controller turns that into a 500.
+#   - pro-bounds-pointer-arithmetic: unavoidable for argv[] and C-string access.
+#   - performance-enum-size: no measurable benefit for the small *ErrorKind enums.
+#   - braces-around-statements: brace style is left to clang-format.
+#   - convert-member-functions-to-static / make-member-function-const: the Crow
+#     middleware hooks keep a fixed instance-method shape.
+#   - named-parameter: Crow route handlers leave unused parameters unnamed so the
+#     compiler's -Wunused-parameter stays quiet.
 Checks: >
   -*,
   bugprone-*,
@@ -8,13 +22,21 @@ Checks: >
   portability-*,
   readability-*,
   -bugprone-easily-swappable-parameters,
+  -bugprone-unchecked-optional-access,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-non-private-member-variables-in-classes,
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
   -cppcoreguidelines-pro-type-vararg,
   -modernize-use-trailing-return-type,
+  -performance-enum-size,
+  -readability-braces-around-statements,
+  -readability-convert-member-functions-to-static,
   -readability-identifier-length,
-  -readability-magic-numbers
+  -readability-magic-numbers,
+  -readability-make-member-function-const,
+  -readability-named-parameter
 
 WarningsAsErrors: ''
 HeaderFilterRegex: '.*/src/.*'

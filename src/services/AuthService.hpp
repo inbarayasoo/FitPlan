@@ -37,7 +37,7 @@ public:
     models::User authenticated_user(std::int64_t user_id);
 
 private:
-    std::string sign_token_for(const models::User& user) const;
+    [[nodiscard]] std::string sign_token_for(const models::User& user) const;
 
     repositories::UserRepository& users_;
     std::string jwt_secret_;

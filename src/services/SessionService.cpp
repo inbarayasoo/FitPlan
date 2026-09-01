@@ -13,7 +13,7 @@ namespace fitplan::services {
 
 void SessionService::check_status(const std::string& status) {
     static const std::set<std::string> kStatuses = {"planned", "in_progress", "completed"};
-    if (kStatuses.count(status) == 0) {
+    if (!kStatuses.contains(status)) {
         throw SessionError(SessionErrorKind::kInvalidInput,
                            "status must be planned, in_progress, or completed");
     }
@@ -68,7 +68,7 @@ void SessionService::validate_sets(std::int64_t trainee_id,
             throw SessionError(SessionErrorKind::kInvalidInput,
                                "a set references an unknown exercise_id");
         }
-        if (s.plan_item_id && active_items.count(*s.plan_item_id) == 0) {
+        if (s.plan_item_id && !active_items.contains(*s.plan_item_id)) {
             throw SessionError(SessionErrorKind::kForbidden,
                                "a set references a plan item that is not on your active plan");
         }

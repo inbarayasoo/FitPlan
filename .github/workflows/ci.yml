@@ -20,7 +20,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential g++-13 cmake ninja-build pkg-config \
+            build-essential g++-13 cmake ninja-build pkg-config clang-tidy \
             libssl-dev libsodium-dev libsqlite3-dev libasio-dev
 
       - name: Cache fetched dependencies
@@ -34,6 +34,11 @@ jobs:
 
       - name: Build
         run: cmake --build --preset dev
+
+      - name: Static analysis (clang-tidy)
+        run: |
+          run-clang-tidy -p build/dev -quiet -warnings-as-errors='*' \
+            $(git ls-files 'src/*.cpp')
 
       - name: Unit and integration tests
         run: ctest --preset dev
@@ -56,3 +61,40 @@ jobs:
         run: |
           git ls-files '*.cpp' '*.hpp' \
             | xargs clang-format --dry-run --Werror
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: fitplan:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke-test the image
+        run: |
+          docker run -d --name fitplan -p 8080:8080 fitplan:ci
+          for _ in $(seq 1 30); do
+            if curl -fsS http://localhost:8080/api/health; then
+              echo
+              echo "image is serving /api/health"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "server never became healthy"
+          docker logs fitplan
+          exit 1
+
+      - name: Tear down
+        if: always()
+        run: docker rm -f fitplan

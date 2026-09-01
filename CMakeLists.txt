@@ -27,10 +27,14 @@ option(FITPLAN_WERROR "Treat compiler warnings as errors" OFF)
 # Warning flags, exposed as an interface target that first-party code links to.
 # Third-party dependencies are pulled in as SYSTEM includes (see cmake/Dependencies.cmake)
 # so their headers do not trip these warnings.
+#
+# -Wnull-dereference is deliberately left out: under -O2 it fires inside Asio and
+# libstdc++ template instantiations pulled in by Crow, which first-party code
+# cannot fix, and it is not part of -Wall/-Wextra.
 # ---------------------------------------------------------------------------
 add_library(fitplan_warnings INTERFACE)
 target_compile_options(fitplan_warnings INTERFACE
-    -Wall -Wextra -Wpedantic -Wshadow -Wnon-virtual-dtor -Wnull-dereference
+    -Wall -Wextra -Wpedantic -Wshadow -Wnon-virtual-dtor
     -Wdouble-promotion -Wimplicit-fallthrough -Wformat=2
     $<$<BOOL:${FITPLAN_WERROR}>:-Werror>)
 

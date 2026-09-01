@@ -96,7 +96,7 @@ double ProgressService::adherence(const std::vector<LoggedSet>& sets,
         if (!set.plan_item_id) {
             continue;
         }
-        if (prescribed_ids.count(*set.plan_item_id) == 0) {
+        if (!prescribed_ids.contains(*set.plan_item_id)) {
             continue;
         }
         ++completed_prescribed;
@@ -162,7 +162,7 @@ int ProgressService::weekly_streak(const std::vector<LoggedSet>& sets, const std
 
     int streak = 0;
     std::chrono::sys_days week = monday_of_week(*today);
-    while (trained_weeks.count(week) > 0) {
+    while (trained_weeks.contains(week)) {
         ++streak;
         week -= std::chrono::weeks{1};
     }
