@@ -2,6 +2,7 @@
 
 #include <sodium.h>
 
+#include <array>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -26,13 +27,13 @@ void ensure_sodium_initialised() {
 std::string hash_password(const std::string& password) {
     ensure_sodium_initialised();
 
-    char hashed[crypto_pwhash_STRBYTES];
-    if (crypto_pwhash_str(hashed, password.c_str(), password.size(),
+    std::array<char, crypto_pwhash_STRBYTES> hashed{};
+    if (crypto_pwhash_str(hashed.data(), password.c_str(), password.size(),
                           crypto_pwhash_OPSLIMIT_INTERACTIVE,
                           crypto_pwhash_MEMLIMIT_INTERACTIVE) != 0) {
         throw std::runtime_error("password hashing failed (out of memory?)");
     }
-    return std::string(hashed);
+    return {hashed.data()};
 }
 
 bool verify_password(const std::string& hash, const std::string& password) {

@@ -1,0 +1,31 @@
+# Build output and local runtime data
+build/
+out/
+cmake-build-*/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+logs/
+*.log
+.env
+
+# Version control, CI, editor, OS noise
+.git/
+.github/
+.gitignore
+.gitattributes
+.vscode/
+.idea/
+.cache/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Docker artifacts themselves
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Manual test scripts (not needed to build or run the server)
+scripts/smoke*.sh

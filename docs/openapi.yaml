@@ -1,0 +1,940 @@
+openapi: 3.0.3
+
+info:
+  title: FitPlan API
+  version: "0.1.0"
+  description: >
+    REST API for FitPlan, a workout-tracking platform with two roles.
+
+    A **coach** builds an exercise library, assembles workout plans from those
+    exercises, assigns a plan to a trainee, and monitors that trainee's progress.
+    A **trainee** reads their assigned plan, logs the sessions they actually
+    performed, keeps private per-exercise notes, and views their own progress.
+
+    All endpoints live under `/api`. Requests and successful responses are
+    `application/json`. Every error is `application/problem+json` (RFC 7807):
+    an object with `type`, `title`, `status`, and `detail`.
+
+    Authentication is a JSON Web Token (HS256) passed as `Authorization: Bearer
+    <token>`. A token is returned by `POST /api/auth/register` and
+    `POST /api/auth/login` and carries the caller's user id and role. Coach-only
+    and trainee-only endpoints reject a valid token of the wrong role with 403.
+  license:
+    name: MIT
+    url: https://github.com/inbarayasoo/FitPlan/blob/main/LICENSE
+
+servers:
+  - url: /
+    description: This server
+
+tags:
+  - name: Auth
+    description: Registration, login, and the current user.
+  - name: Exercises
+    description: "The coach's exercise library. Role: coach."
+  - name: Trainees
+    description: "The coach's roster of trainees. Role: coach."
+  - name: Plans
+    description: "Workout plans the coach builds and assigns. Role: coach."
+  - name: Sessions
+    description: "A trainee's assigned plan and logged workouts. Role: trainee."
+  - name: Progress
+    description: Computed progress metrics for a trainee.
+  - name: Notes
+    description: "A trainee's private per-exercise notes. Role: trainee."
+  - name: Health
+    description: Liveness and schema version.
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ---------------------------------------------------------------- Auth -------
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Create an account and return a token
+      operationId: postAuthRegister
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Account created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthOutcome"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Exchange email and password for a token
+      operationId: postAuthLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Authenticated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthOutcome"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: The currently authenticated user
+      operationId: getAuthMe
+      responses:
+        "200":
+          description: The user the token belongs to.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  # ------------------------------------------------------------ Exercises ------
+  /api/exercises:
+    get:
+      tags: [Exercises]
+      summary: List the coach's exercises
+      operationId: getExercises
+      responses:
+        "200":
+          description: Every exercise owned by the calling coach.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [exercises]
+                properties:
+                  exercises:
+                    type: array
+                    items: { $ref: "#/components/schemas/Exercise" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Exercises]
+      summary: Add an exercise to the library
+      operationId: postExercises
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExerciseRequest"
+      responses:
+        "201":
+          description: Exercise created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Exercise" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/exercises/{id}:
+    parameters:
+      - $ref: "#/components/parameters/PathId"
+    get:
+      tags: [Exercises]
+      summary: One exercise
+      operationId: getExercisesById
+      responses:
+        "200":
+          description: The exercise.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Exercise" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      tags: [Exercises]
+      summary: Replace an exercise
+      operationId: putExercisesById
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExerciseRequest"
+      responses:
+        "200":
+          description: The updated exercise.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Exercise" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Exercises]
+      summary: Delete an exercise
+      operationId: deleteExercisesById
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ------------------------------------------------------------- Trainees ------
+  /api/trainees:
+    get:
+      tags: [Trainees]
+      summary: List the coach's roster
+      operationId: getTrainees
+      responses:
+        "200":
+          description: Every trainee linked to the calling coach.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [trainees]
+                properties:
+                  trainees:
+                    type: array
+                    items: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Trainees]
+      summary: Attach an existing trainee account by email
+      operationId: postTrainees
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttachTraineeRequest"
+      responses:
+        "201":
+          description: The trainee, now on the roster.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /api/trainees/{id}:
+    parameters:
+      - $ref: "#/components/parameters/PathId"
+    delete:
+      tags: [Trainees]
+      summary: Remove a trainee from the roster
+      operationId: deleteTraineesById
+      description: The trainee's account and any plans already assigned are left untouched.
+      responses:
+        "204": { description: Removed from the roster. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ---------------------------------------------------------------- Plans ------
+  /api/plans:
+    get:
+      tags: [Plans]
+      summary: List the coach's plans
+      operationId: getPlans
+      responses:
+        "200":
+          description: Plan headers only, no items.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [plans]
+                properties:
+                  plans:
+                    type: array
+                    items: { $ref: "#/components/schemas/PlanHeader" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Plans]
+      summary: Create a plan with its exercise items
+      operationId: postPlans
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanRequest"
+      responses:
+        "201":
+          description: The new plan, with items.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Plan" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/plans/{id}:
+    parameters:
+      - $ref: "#/components/parameters/PathId"
+    get:
+      tags: [Plans]
+      summary: One plan, with items
+      operationId: getPlansById
+      responses:
+        "200":
+          description: The plan and its items.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Plan" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      tags: [Plans]
+      summary: Replace a plan and its items
+      operationId: putPlansById
+      description: >
+        The plan name, notes, and the full item list are replaced. Existing
+        items are deleted and re-inserted from the request in list order.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanRequest"
+      responses:
+        "200":
+          description: The updated plan, with items.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Plan" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Plans]
+      summary: Delete a plan
+      operationId: deletePlansById
+      description: >
+        Plan items are removed with it. Sessions already logged against the plan
+        keep their history; their `plan_id` becomes null.
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/plans/{id}/assign:
+    parameters:
+      - $ref: "#/components/parameters/PathId"
+    post:
+      tags: [Plans]
+      summary: Make this the trainee's active plan
+      operationId: postPlansByIdAssign
+      description: >
+        Marks the plan active and deactivates any other plan the same trainee
+        had active. The trainee then sees it at `GET /api/my/plan`.
+      responses:
+        "200":
+          description: The now-active plan, with items.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Plan" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ------------------------------------------------------------- Sessions ------
+  /api/my/plan:
+    get:
+      tags: [Sessions]
+      summary: The trainee's active plan
+      operationId: getMyPlan
+      responses:
+        "200":
+          description: The active assigned plan, with items.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Plan" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: No plan is currently assigned.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+
+  /api/my/sessions:
+    get:
+      tags: [Sessions]
+      summary: List the trainee's logged sessions
+      operationId: getMySessions
+      responses:
+        "200":
+          description: Every session the trainee has logged, newest first, each with its sets.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sessions]
+                properties:
+                  sessions:
+                    type: array
+                    items: { $ref: "#/components/schemas/Session" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Sessions]
+      summary: Log a workout session
+      operationId: postMySessions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionRequest"
+      responses:
+        "201":
+          description: The logged session, with its numbered sets.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/my/sessions/{id}:
+    parameters:
+      - $ref: "#/components/parameters/PathId"
+    patch:
+      tags: [Sessions]
+      summary: Update a logged session
+      operationId: patchMySessionsById
+      description: >
+        Any subset of `status`, `notes`, and `sets` may be sent. Omitting a
+        field leaves it unchanged. Sending `sets` replaces the whole set list.
+        Sending `notes: null` clears the note.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionPatch"
+      responses:
+        "200":
+          description: The updated session.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Sessions]
+      summary: Delete a logged session
+      operationId: deleteMySessionsById
+      responses:
+        "204": { description: "Deleted, with its sets." }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ------------------------------------------------------------- Progress ------
+  /api/my/progress:
+    get:
+      tags: [Progress]
+      summary: The trainee's own progress report
+      operationId: getMyProgress
+      responses:
+        "200":
+          description: Every computed metric over the trainee's logged sets.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProgressReport" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/trainees/{id}/progress:
+    parameters:
+      - $ref: "#/components/parameters/PathId"
+    get:
+      tags: [Progress]
+      summary: A rostered trainee's progress report (coach view)
+      operationId: getTraineesByIdProgress
+      description: "Role: coach. The trainee must be on the calling coach's roster."
+      responses:
+        "200":
+          description: The same report shape the trainee sees.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProgressReport" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ---------------------------------------------------------------- Notes ------
+  /api/my/notes:
+    get:
+      tags: [Notes]
+      summary: List the trainee's per-exercise notes
+      operationId: getMyNotes
+      responses:
+        "200":
+          description: One entry per exercise the trainee has written a note for.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [notes]
+                properties:
+                  notes:
+                    type: array
+                    items: { $ref: "#/components/schemas/Note" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/my/notes/{exercise_id}:
+    parameters:
+      - name: exercise_id
+        in: path
+        required: true
+        description: The exercise the note is attached to.
+        schema: { type: integer, format: int64, minimum: 1 }
+    put:
+      tags: [Notes]
+      summary: Create or replace the note for one exercise
+      operationId: putMyNotesByExerciseId
+      description: >
+        The exercise must appear on the trainee's active plan, otherwise 404.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoteRequest"
+      responses:
+        "200":
+          description: The saved note.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Note" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Notes]
+      summary: Delete the note for one exercise
+      operationId: deleteMyNotesByExerciseId
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # --------------------------------------------------------------- Health ------
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Liveness probe and schema version
+      operationId: getHealth
+      security: []
+      responses:
+        "200":
+          description: The server is up.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  service: { type: string, example: FitPlan }
+                  version: { type: string, example: "0.1.0" }
+                  schema_version: { type: integer, example: 3 }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PathId:
+      name: id
+      in: path
+      required: true
+      description: Numeric resource id.
+      schema: { type: integer, format: int64, minimum: 1 }
+
+  responses:
+    BadRequest:
+      description: The request body or a field value is invalid.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Unauthorized:
+      description: No access token, or it is expired or malformed.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Forbidden:
+      description: Authenticated, but the token's role may not perform this action.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    NotFound:
+      description: No such resource, or it belongs to someone else.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Conflict:
+      description: The request breaks a uniqueness or already-linked rule.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+
+  schemas:
+    Problem:
+      type: object
+      description: RFC 7807 error body. Content-Type is `application/problem+json`.
+      properties:
+        type: { type: string, example: about:blank }
+        title: { type: string, example: Not found }
+        status: { type: integer, example: 404 }
+        detail: { type: string, example: no exercise with that id }
+
+    Role:
+      type: string
+      enum: [coach, trainee]
+
+    User:
+      type: object
+      description: The public shape of an account. Never includes the password hash.
+      properties:
+        id: { type: integer, format: int64 }
+        email: { type: string, format: email }
+        role: { $ref: "#/components/schemas/Role" }
+        display_name: { type: string }
+        created_at: { type: string, description: "SQLite timestamp, e.g. 2026-09-01 12:00:00" }
+
+    RegisterRequest:
+      type: object
+      required: [email, password, role, display_name]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password, minLength: 8 }
+        role: { $ref: "#/components/schemas/Role" }
+        display_name: { type: string }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+
+    AuthOutcome:
+      type: object
+      required: [access_token, user]
+      properties:
+        access_token:
+          type: string
+          description: "HS256 JWT. Send as `Authorization: Bearer <token>`. Default lifetime 24h."
+        user: { $ref: "#/components/schemas/User" }
+
+    VideoUrl:
+      type: string
+      format: uri
+      nullable: true
+      description: >
+        Optional tutorial link. Must be `https` to youtube.com, youtu.be, or
+        instagram.com; any other value is rejected with 400.
+      example: https://youtu.be/dQw4w9WgXcQ
+
+    Exercise:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        coach_id: { type: integer, format: int64 }
+        name: { type: string }
+        category: { type: string, nullable: true }
+        primary_muscle: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        video_url: { $ref: "#/components/schemas/VideoUrl" }
+        video_embed_url:
+          type: string
+          nullable: true
+          description: Derived privacy-friendly embed URL, set only for YouTube links.
+        created_at: { type: string }
+
+    ExerciseRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, description: "Required, must not be blank." }
+        category: { type: string, nullable: true }
+        primary_muscle: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        video_url: { $ref: "#/components/schemas/VideoUrl" }
+
+    AttachTraineeRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          description: The email of an existing account whose role is `trainee`.
+
+    PlanItemInput:
+      type: object
+      required: [exercise_id]
+      description: One exercise slot in a plan. All targets are optional.
+      properties:
+        exercise_id:
+          type: integer
+          format: int64
+          description: An exercise owned by the same coach.
+        day_label:
+          type: string
+          nullable: true
+          description: Free-text grouping, e.g. "Day A" or "Push".
+        target_sets: { type: integer, nullable: true, minimum: 1 }
+        target_reps: { type: integer, nullable: true, minimum: 1 }
+        target_weight: { type: number, nullable: true, minimum: 0 }
+        rest_seconds: { type: integer, nullable: true, minimum: 0 }
+        notes:
+          type: string
+          nullable: true
+          description: The coach's cue for this item.
+        video_url: { $ref: "#/components/schemas/VideoUrl" }
+
+    PlanItem:
+      type: object
+      description: A stored plan item. Read-only fields are added on top of the input shape.
+      properties:
+        id: { type: integer, format: int64 }
+        plan_id: { type: integer, format: int64 }
+        exercise_id: { type: integer, format: int64 }
+        exercise_name:
+          type: string
+          description: The referenced exercise's name, joined in on read.
+        order_index:
+          type: integer
+          description: Position in the plan, from the request list order.
+        day_label: { type: string, nullable: true }
+        target_sets: { type: integer, nullable: true }
+        target_reps: { type: integer, nullable: true }
+        target_weight: { type: number, nullable: true }
+        rest_seconds: { type: integer, nullable: true }
+        notes: { type: string, nullable: true }
+        video_url: { type: string, nullable: true }
+        video_embed_url: { type: string, nullable: true }
+
+    PlanRequest:
+      type: object
+      required: [trainee_id, name, items]
+      properties:
+        trainee_id:
+          type: integer
+          format: int64
+          description: A trainee on the calling coach's roster.
+        name: { type: string, description: "Required, must not be blank." }
+        notes: { type: string, nullable: true }
+        items:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/PlanItemInput" }
+
+    PlanHeader:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        coach_id: { type: integer, format: int64 }
+        trainee_id: { type: integer, format: int64 }
+        name: { type: string }
+        notes: { type: string, nullable: true }
+        is_active:
+          type: boolean
+          description: True for the one plan the trainee currently trains from.
+        created_at: { type: string }
+
+    Plan:
+      allOf:
+        - $ref: "#/components/schemas/PlanHeader"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/PlanItem" }
+
+    SessionStatus:
+      type: string
+      enum: [planned, in_progress, completed]
+
+    SessionSetInput:
+      type: object
+      required: [exercise_id]
+      properties:
+        exercise_id: { type: integer, format: int64 }
+        plan_item_id:
+          type: integer
+          format: int64
+          nullable: true
+          description: The prescribed item this set fulfils, or null for an ad-hoc set.
+        reps: { type: integer, nullable: true, minimum: 0 }
+        weight: { type: number, nullable: true, minimum: 0 }
+        rpe:
+          type: number
+          nullable: true
+          minimum: 0
+          maximum: 10
+          description: Rate of perceived exertion, 0-10.
+        completed:
+          type: boolean
+          default: true
+
+    SessionSet:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        session_id: { type: integer, format: int64 }
+        exercise_id: { type: integer, format: int64 }
+        exercise_name: { type: string }
+        set_number:
+          type: integer
+          description: 1-based position within the session.
+        completed: { type: boolean }
+        plan_item_id: { type: integer, format: int64, nullable: true }
+        reps: { type: integer, nullable: true }
+        weight: { type: number, nullable: true }
+        rpe: { type: number, nullable: true }
+
+    SessionRequest:
+      type: object
+      properties:
+        plan_id:
+          type: integer
+          format: int64
+          nullable: true
+          description: The plan this session follows. Usually the trainee's active plan.
+        performed_at:
+          type: string
+          nullable: true
+          description: >
+            When the workout happened, "YYYY-MM-DD HH:MM:SS". Omitted means now.
+        status:
+          allOf: [{ $ref: "#/components/schemas/SessionStatus" }]
+          default: completed
+        notes: { type: string, nullable: true }
+        sets:
+          type: array
+          items: { $ref: "#/components/schemas/SessionSetInput" }
+
+    SessionPatch:
+      type: object
+      description: Every field is optional. Only the fields present are changed.
+      properties:
+        status: { $ref: "#/components/schemas/SessionStatus" }
+        notes:
+          type: string
+          nullable: true
+          description: A string to set the note, or null to clear it.
+        sets:
+          type: array
+          description: If present, replaces the entire set list.
+          items: { $ref: "#/components/schemas/SessionSetInput" }
+
+    Session:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        trainee_id: { type: integer, format: int64 }
+        performed_at: { type: string }
+        status: { $ref: "#/components/schemas/SessionStatus" }
+        plan_id: { type: integer, format: int64, nullable: true }
+        notes: { type: string, nullable: true }
+        sets:
+          type: array
+          items: { $ref: "#/components/schemas/SessionSet" }
+
+    SeriesPoint:
+      type: object
+      description: One dated data point in a progress series.
+      properties:
+        date: { type: string, description: '"YYYY-MM-DD".' }
+        value: { type: number }
+
+    ExerciseE1rmSeries:
+      type: object
+      properties:
+        exercise_id: { type: integer, format: int64 }
+        exercise_name: { type: string }
+        best_e1rm_over_time:
+          type: array
+          description: Daily best estimated 1-rep-max (Epley), one point per day trained.
+          items: { $ref: "#/components/schemas/SeriesPoint" }
+
+    ProgressReport:
+      type: object
+      properties:
+        trainee_id: { type: integer, format: int64 }
+        as_of: { type: string, description: "The date the report was computed (YYYY-MM-DD)." }
+        total_volume:
+          type: number
+          description: Sum of reps x weight over every completed set.
+        adherence:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Completed prescribed sets divided by total prescribed sets.
+        weekly_streak:
+          type: integer
+          description: Consecutive ISO weeks up to `as_of` with at least one session.
+        volume_over_time:
+          type: array
+          items: { $ref: "#/components/schemas/SeriesPoint" }
+        exercises:
+          type: array
+          items: { $ref: "#/components/schemas/ExerciseE1rmSeries" }
+
+    Note:
+      type: object
+      properties:
+        exercise_id: { type: integer, format: int64 }
+        exercise_name: { type: string }
+        body: { type: string }
+        updated_at: { type: string }
+
+    NoteRequest:
+      type: object
+      required: [body]
+      properties:
+        body:
+          type: string
+          description: The note text. Required, must not be blank.

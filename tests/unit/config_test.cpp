@@ -36,6 +36,7 @@ TEST_F(ConfigEnvTest, UsesDefaultsWhenEnvironmentIsEmpty) {
     EXPECT_EQ(cfg.jwt_ttl_seconds, 24 * 60 * 60);
     EXPECT_EQ(cfg.thread_count, 0u);
     EXPECT_EQ(cfg.web_dir, "web");
+    EXPECT_EQ(cfg.docs_dir, "docs");
     EXPECT_TRUE(cfg.uses_insecure_jwt_secret());
 }
 
@@ -48,6 +49,7 @@ TEST_F(ConfigEnvTest, ReadsOverridesFromEnvironment) {
     set_env("FITPLAN_JWT_TTL_SECONDS", "3600");
     set_env("FITPLAN_THREADS", "4");
     set_env("FITPLAN_WEB_DIR", "/opt/fitplan/web");
+    set_env("FITPLAN_DOCS_DIR", "/opt/fitplan/docs");
 
     const auto cfg = fitplan::Config::from_env();
 
@@ -58,6 +60,7 @@ TEST_F(ConfigEnvTest, ReadsOverridesFromEnvironment) {
     EXPECT_EQ(cfg.jwt_ttl_seconds, 3600);
     EXPECT_EQ(cfg.thread_count, 4u);
     EXPECT_EQ(cfg.web_dir, "/opt/fitplan/web");
+    EXPECT_EQ(cfg.docs_dir, "/opt/fitplan/docs");
     EXPECT_FALSE(cfg.uses_insecure_jwt_secret());
 }
 

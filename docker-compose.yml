@@ -1,0 +1,24 @@
+# Run the whole app with:  docker compose up --build
+# Stop and keep data:      docker compose down
+# Stop and wipe data:      docker compose down -v
+
+services:
+  fitplan:
+    build: .
+    image: fitplan:local
+    container_name: fitplan
+    ports:
+      - "8080:8080"
+    environment:
+      # The Dockerfile already sets host/port and the web/migrations/db paths.
+      # Only the JWT signing secret and the log level are worth overriding per
+      # environment. Put real values in a local .env file (git-ignored); the
+      # default below is for development only and the server logs a warning about it.
+      FITPLAN_JWT_SECRET: ${FITPLAN_JWT_SECRET:-dev-insecure-change-me}
+      FITPLAN_LOG_LEVEL: ${FITPLAN_LOG_LEVEL:-info}
+    volumes:
+      - fitplan-data:/data
+    restart: unless-stopped
+
+volumes:
+  fitplan-data:

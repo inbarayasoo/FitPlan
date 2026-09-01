@@ -19,16 +19,18 @@ namespace fitplan {
 //   FITPLAN_LOG_LEVEL        trace|debug|info|warn|error|off  (default info)
 //   FITPLAN_THREADS          worker threads, 0 = auto  (default 0)
 //   FITPLAN_WEB_DIR          static frontend directory (default web)
+//   FITPLAN_DOCS_DIR         API docs directory        (default docs)
 struct Config {
     std::string host = "0.0.0.0";
     std::uint16_t port = 8080;
     std::string database_path = "fitplan.db";
     std::string migrations_dir = "src/db/migrations";
     std::string jwt_secret = "dev-insecure-secret-change-me";
-    std::int64_t jwt_ttl_seconds = 24 * 60 * 60;
+    std::int64_t jwt_ttl_seconds = 24LL * 60 * 60;
     std::string log_level = "info";
     std::size_t thread_count = 0;
     std::string web_dir = "web";
+    std::string docs_dir = "docs";
 
     // Builds a Config from the current environment. Never throws: malformed
     // values fall back to the default and are reported through spdlog::warn.

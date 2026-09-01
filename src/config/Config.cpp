@@ -54,6 +54,7 @@ Config Config::from_env() {
     cfg.log_level = env_or("FITPLAN_LOG_LEVEL", cfg.log_level);
     cfg.thread_count = env_int_or<std::size_t>("FITPLAN_THREADS", cfg.thread_count);
     cfg.web_dir = env_or("FITPLAN_WEB_DIR", cfg.web_dir);
+    cfg.docs_dir = env_or("FITPLAN_DOCS_DIR", cfg.docs_dir);
     return cfg;
 }
 
