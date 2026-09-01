@@ -150,6 +150,25 @@ int main(int argc, char** argv) {
     fitplan::controllers::register_exercise_note_routes(app, exercise_notes, plans_repo,
                                                         plan_items);
 
+    // API documentation: the OpenAPI spec plus a Swagger UI that renders it.
+    // These literal routes are matched ahead of the "/<path>" frontend catch-all.
+    const std::string docs_dir = config.docs_dir;
+    CROW_ROUTE(app, "/openapi.yaml")
+    ([docs_dir](const crow::request&, crow::response& res) {
+        res.set_static_file_info(docs_dir + "/openapi.yaml");
+        res.end();
+    });
+    CROW_ROUTE(app, "/docs")
+    ([docs_dir](const crow::request&, crow::response& res) {
+        res.set_static_file_info(docs_dir + "/swagger-ui/index.html");
+        res.end();
+    });
+    CROW_ROUTE(app, "/docs/<path>")
+    ([docs_dir](const crow::request&, crow::response& res, const std::string& asset) {
+        res.set_static_file_info(docs_dir + "/swagger-ui/" + asset);
+        res.end();
+    });
+
     // Static frontend. Every non-API GET resolves to a file under web_dir, with
     // "/" mapping to index.html. crow::response::set_static_file_info() rejects
     // "../" traversal and fills in Content-Type / Content-Length / 404 for us.

@@ -22,3 +22,6 @@ cmake-build-*/
 *.swp
 .DS_Store
 Thumbs.db
+
+# Local-only working notes (kept on disk, never published)
+/docs/architecture.md
