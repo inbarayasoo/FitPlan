@@ -6,8 +6,10 @@
 -- Safe to run more than once: it clears the tables first. It never touches
 -- schema_version, so the schema itself is left alone.
 --
--- NOTE: the password_hash values below are placeholders. Step 3 adds real
--- Argon2id hashing and a small tool to (re)generate login-ready credentials.
+-- Login credentials for the seeded accounts (the password_hash values are real
+-- Argon2id hashes of these passwords):
+--   coach@fitplan.dev    / coach-demo-pass
+--   trainee@fitplan.dev  / trainee-demo-pass
 
 DELETE FROM session_sets;
 DELETE FROM workout_sessions;
@@ -19,8 +21,8 @@ DELETE FROM users;
 
 -- ----- accounts -----------------------------------------------------------
 INSERT INTO users (id, email, password_hash, role, display_name) VALUES
-    (1, 'coach@fitplan.dev',   '$argon2id$PLACEHOLDER-SET-IN-STEP-3', 'coach',   'Dana Coach'),
-    (2, 'trainee@fitplan.dev', '$argon2id$PLACEHOLDER-SET-IN-STEP-3', 'trainee', 'Ron Trainee');
+    (1, 'coach@fitplan.dev',   '$argon2id$v=19$m=65536,t=2,p=1$DobN91CmhudmltQh+IQGbw$MV7QM7fX/PPgEU5pWmEqjcXXavvEYiN8tMWnMTeVfaI', 'coach',   'Dana Coach'),
+    (2, 'trainee@fitplan.dev', '$argon2id$v=19$m=65536,t=2,p=1$jvSKpMnHMoO7hUgoFArBWA$ljmqnKoM9rYXTnpFchOpyP4PXJ+2TQAqwA95lQbxdTQ', 'trainee', 'Ron Trainee');
 
 INSERT INTO coach_trainees (coach_id, trainee_id) VALUES (1, 2);
 

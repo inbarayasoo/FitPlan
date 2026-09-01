@@ -72,6 +72,22 @@ curl -s http://localhost:8080/api/health
 ctest --preset dev
 ```
 
+### Seed data
+
+Load a small sample dataset (one coach, one trainee, an exercise library, an
+active plan, and two logged sessions):
+
+```bash
+./build/dev/fitplan --seed   # run from the repo root
+```
+
+Seeded logins:
+
+| Role    | Email                 | Password            |
+| ------- | --------------------- | ------------------- |
+| Coach   | `coach@fitplan.dev`   | `coach-demo-pass`   |
+| Trainee | `trainee@fitplan.dev` | `trainee-demo-pass` |
+
 ### Configuration
 
 All configuration is via environment variables (safe defaults for development):
@@ -92,28 +108,28 @@ All configuration is via environment variables (safe defaults for development):
 src/
   main.cpp            process entry point
   config/             environment-driven configuration
-  db/                 connection + migration runner        (from step 2)
-  models/             plain data structs                    (from step 2)
-  repositories/       SQL data access                       (from step 2)
-  services/           business logic                        (from step 3)
-  controllers/        HTTP layer                            (from step 3)
-  middleware/         auth, logging, error handling         (from step 3)
+  db/                 connection + migration runner
+  models/             plain data structs
+  repositories/       SQL data access
+  services/           business logic
+  controllers/        HTTP layer
+  middleware/         auth, logging, error handling
 tests/
   unit/               fast, pure-logic tests
-  integration/        HTTP-level tests against a temp DB    (from step 3)
+  integration/        HTTP-level tests against a temp DB
 cmake/                dependency and version-header helpers
-docs/                 OpenAPI spec, architecture notes      (from step 8)
-web/                  static frontend                       (from step 6)
+docs/                 OpenAPI spec, architecture notes
+web/                  static frontend
 ```
 
 ## Roadmap
 
 - [x] Step 1 - Project skeleton, build system, `GET /api/health`
-- [ ] Step 2 - Database layer, migrations, seed data
-- [ ] Step 3 - Auth (register / login / JWT) + middleware
-- [ ] Step 4 - Coach API (exercises, plans, trainees, tutorial-video links)
-- [ ] Step 5 - Trainee API + progress engine (e1RM, volume, adherence, streak)
-- [ ] Step 6 - Web frontend
+- [x] Step 2 - Database layer, migrations, seed data
+- [x] Step 3 - Auth (register / login / JWT) + middleware
+- [x] Step 4 - Coach API (exercises, plans, trainees, tutorial-video links)
+- [x] Step 5 - Trainee API + progress engine (e1RM, volume, adherence, streak)
+- [x] Step 6 - Web frontend
 - [ ] Step 7 - Test hardening + GitHub Actions CI
 - [ ] Step 8 - Docker, OpenAPI/Swagger, documentation polish
 
