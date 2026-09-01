@@ -1,5 +1,7 @@
 # FitPlan
 
+[![CI](https://github.com/inbarayasoo/FitPlan/actions/workflows/ci.yml/badge.svg)](https://github.com/inbarayasoo/FitPlan/actions/workflows/ci.yml)
+
 A workout-tracking platform with a **coach** side and a **trainee** side, built as a
 C++20 REST API. Coaches maintain an exercise library, build workout plans (with an
 optional tutorial video per exercise), assign them to trainees, and track progress.

@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.24)
 project(FitPlan
     VERSION 0.1.0
     DESCRIPTION "Workout tracking platform - REST API for coaches and trainees"
-    HOMEPAGE_URL "https://github.com/inbarayaso/FitPlan"
+    HOMEPAGE_URL "https://github.com/inbarayasoo/FitPlan"
     LANGUAGES CXX)
 
 # ---------------------------------------------------------------------------
