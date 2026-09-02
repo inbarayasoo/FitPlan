@@ -6,8 +6,12 @@
 #include <string>
 
 #include "db/Database.hpp"
+#include "GoogleTokenMint.hpp"
 #include "repositories/UserRepository.hpp"
+#include "RsaTestKey.hpp"
 #include "services/AuthError.hpp"
+#include "services/GoogleIdTokenVerifier.hpp"
+#include "services/GoogleJwks.hpp"
 #include "util/Jwt.hpp"
 
 namespace {
@@ -17,6 +21,14 @@ using fitplan::repositories::UserRepository;
 using fitplan::services::AuthError;
 using fitplan::services::AuthErrorKind;
 using fitplan::services::AuthService;
+using fitplan::services::GoogleIdTokenVerifier;
+using fitplan::services::GoogleJwksCache;
+using fitplan::services::JwksDocument;
+using fitplan::testutil::GoogleTokenOptions;
+using fitplan::testutil::kTestGoogleClientId;
+using fitplan::testutil::make_rsa_test_key;
+using fitplan::testutil::mint_google_id_token;
+using fitplan::testutil::RsaTestKey;
 using fitplan::util::verify_access_token;
 
 std::string migrations_dir() {
@@ -127,6 +139,106 @@ TEST_F(AuthServiceTest, AuthenticatedUserRejectsAMissingId) {
     } catch (const AuthError& e) {
         EXPECT_EQ(e.kind(), AuthErrorKind::kInvalidCredentials);
     }
+}
+
+TEST_F(AuthServiceTest, GoogleLoginIsRefusedWhenNoVerifierIsConfigured) {
+    // auth_ was built without a GoogleIdTokenVerifier.
+    try {
+        auth_.login_with_google("any.token.here");
+        FAIL() << "expected AuthError";
+    } catch (const AuthError& e) {
+        EXPECT_EQ(e.kind(), AuthErrorKind::kInvalidInput);
+    }
+}
+
+// --- Google sign-in ---------------------------------------------------------
+
+class AuthServiceGoogleTest : public ::testing::Test {
+protected:
+    Database db_{":memory:", migrations_dir()};
+    UserRepository users_{db_.connection()};
+    RsaTestKey key_ = make_rsa_test_key("google-test-kid");
+    GoogleJwksCache jwks_{[this] {
+        JwksDocument doc;
+        doc.body = RsaTestKey::jwks_document({key_});
+        return doc;
+    }};
+    GoogleIdTokenVerifier verifier_{kTestGoogleClientId, jwks_};
+    AuthService auth_{users_, kSecret, kTtl, &verifier_};
+};
+
+TEST_F(AuthServiceGoogleTest, FirstSignInCreatesATraineeAccountWithNoPassword) {
+    const auto out = auth_.login_with_google(mint_google_id_token(key_));
+
+    EXPECT_GT(out.user.id, 0);
+    EXPECT_EQ(out.user.email, "gina@example.com");
+    EXPECT_EQ(out.user.role, "trainee");
+    EXPECT_EQ(out.user.auth_provider, "google");
+    EXPECT_EQ(out.user.display_name, "Gina G");
+    EXPECT_TRUE(out.user.password_hash.empty());
+
+    const auto claims = verify_access_token(out.access_token, kSecret);
+    ASSERT_TRUE(claims.has_value());
+    EXPECT_EQ(claims->user_id, out.user.id);
+    EXPECT_EQ(claims->role, "trainee");
+}
+
+TEST_F(AuthServiceGoogleTest, SecondSignInReturnsTheSameAccount) {
+    const auto first = auth_.login_with_google(mint_google_id_token(key_));
+    const auto second = auth_.login_with_google(mint_google_id_token(key_));
+
+    EXPECT_EQ(second.user.id, first.user.id);
+}
+
+TEST_F(AuthServiceGoogleTest, LinksToAnExistingLocalAccountByVerifiedEmail) {
+    const auto local =
+        auth_.register_user("coach@example.com", "password123", "coach", "Coach One");
+
+    GoogleTokenOptions opt;
+    opt.email = "coach@example.com";
+    opt.subject = "google-sub-for-coach";
+    const auto out = auth_.login_with_google(mint_google_id_token(key_, opt));
+
+    EXPECT_EQ(out.user.id, local.user.id);
+    EXPECT_EQ(out.user.role, "coach");           // unchanged
+    EXPECT_EQ(out.user.auth_provider, "local");  // records how the account began
+    EXPECT_EQ(out.user.google_sub, "google-sub-for-coach");
+
+    // A later Google sign-in now resolves straight to that account.
+    const auto again = auth_.login_with_google(mint_google_id_token(key_, opt));
+    EXPECT_EQ(again.user.id, local.user.id);
+}
+
+TEST_F(AuthServiceGoogleTest, RefusesToLinkWhenTheGoogleEmailIsNotVerified) {
+    auth_.register_user("coach@example.com", "password123", "coach", "Coach One");
+
+    GoogleTokenOptions opt;
+    opt.email = "coach@example.com";
+    opt.email_verified = false;
+
+    try {
+        auth_.login_with_google(mint_google_id_token(key_, opt));
+        FAIL() << "expected AuthError";
+    } catch (const AuthError& e) {
+        EXPECT_EQ(e.kind(), AuthErrorKind::kEmailAlreadyUsed);
+    }
+}
+
+TEST_F(AuthServiceGoogleTest, RejectsATokenThatFailsVerification) {
+    try {
+        auth_.login_with_google("not-a-real-token");
+        FAIL() << "expected AuthError";
+    } catch (const AuthError& e) {
+        EXPECT_EQ(e.kind(), AuthErrorKind::kInvalidCredentials);
+    }
+}
+
+TEST_F(AuthServiceGoogleTest, FallsBackToTheEmailWhenGoogleSendsNoName) {
+    GoogleTokenOptions opt;
+    opt.name = "";
+    const auto out = auth_.login_with_google(mint_google_id_token(key_, opt));
+
+    EXPECT_EQ(out.user.display_name, "gina@example.com");
 }
 
 }  // namespace

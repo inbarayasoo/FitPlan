@@ -23,14 +23,21 @@ struct LoginRequest {
     std::string password;
 };
 
+struct GoogleLoginRequest {
+    std::string id_token;
+};
+
 // Parse helpers. Throw services::AuthError(kInvalidInput) on malformed JSON or a
 // missing/!string field.
 RegisterRequest parse_register_request(const std::string& body);
 LoginRequest parse_login_request(const std::string& body);
+GoogleLoginRequest parse_google_login_request(const std::string& body);
 
 // Response builders. `auth_response` is the { access_token, user } body shared by
-// register and login; `user_response` is the bare user object for /auth/me.
+// register, login and Google login; `user_response` is the bare user object for
+// /auth/me; `config_response` tells the frontend whether Google Sign-In is on.
 crow::response auth_response(int status, const services::AuthOutcome& outcome);
 crow::response user_response(int status, const models::User& user);
+crow::response config_response(const std::string& google_client_id);
 
 }  // namespace fitplan::dto

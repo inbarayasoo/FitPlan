@@ -16,9 +16,10 @@ info:
     an object with `type`, `title`, `status`, and `detail`.
 
     Authentication is a JSON Web Token (HS256) passed as `Authorization: Bearer
-    <token>`. A token is returned by `POST /api/auth/register` and
-    `POST /api/auth/login` and carries the caller's user id and role. Coach-only
-    and trainee-only endpoints reject a valid token of the wrong role with 403.
+    <token>`. A token is returned by `POST /api/auth/register`,
+    `POST /api/auth/login` and `POST /api/auth/google`, and carries the caller's
+    user id and role. Coach-only and trainee-only endpoints reject a valid token
+    of the wrong role with 403.
   license:
     name: MIT
     url: https://github.com/inbarayasoo/FitPlan/blob/main/LICENSE
@@ -107,6 +108,53 @@ paths:
               schema:
                 $ref: "#/components/schemas/User"
         "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/auth/google:
+    post:
+      tags: [Auth]
+      summary: Exchange a Google ID token for a FitPlan token
+      description: >
+        Verifies a Google "Sign in with Google" ID token (RS256 against Google's
+        published keys; issuer, audience and expiry checked) and logs the user
+        in. If no account is linked to that Google identity yet, one is linked by
+        Google-verified email, or a new trainee account is created. Returns the
+        same token shape as password login. 400 when Google Sign-In is not
+        configured on the server.
+      operationId: postAuthGoogle
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleLoginRequest"
+      responses:
+        "200":
+          description: Authenticated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthOutcome"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /api/auth/config:
+    get:
+      tags: [Auth]
+      summary: Public client configuration
+      description: >
+        Lets the frontend decide whether to show the Google button.
+        `google_client_id` is an empty string when Google Sign-In is off.
+      operationId: getAuthConfig
+      security: []
+      responses:
+        "200":
+          description: The public config.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthConfig"
 
   # ------------------------------------------------------------ Exercises ------
   /api/exercises:
@@ -640,6 +688,10 @@ components:
         role: { $ref: "#/components/schemas/Role" }
         display_name: { type: string }
         created_at: { type: string, description: "SQLite timestamp, e.g. 2026-09-01 12:00:00" }
+        auth_provider:
+          type: string
+          enum: [local, google]
+          description: How the account was created - email + password, or Google Sign-In.
 
     RegisterRequest:
       type: object
@@ -656,6 +708,22 @@ components:
       properties:
         email: { type: string, format: email }
         password: { type: string, format: password }
+
+    GoogleLoginRequest:
+      type: object
+      required: [id_token]
+      properties:
+        id_token:
+          type: string
+          description: The JWT credential returned by Google Identity Services.
+
+    AuthConfig:
+      type: object
+      required: [google_client_id]
+      properties:
+        google_client_id:
+          type: string
+          description: The Google OAuth client id, or "" when Google Sign-In is off.
 
     AuthOutcome:
       type: object

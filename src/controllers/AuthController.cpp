@@ -3,6 +3,7 @@
 #include <crow.h>
 
 #include <exception>
+#include <string>
 
 #include "dto/AuthDto.hpp"
 #include "http/AuthGuard.hpp"
@@ -35,7 +36,8 @@ crow::response problem_from(const services::AuthError& err) {
 
 }  // namespace
 
-void register_auth_routes(app::FitPlanApp& app, services::AuthService& auth) {
+void register_auth_routes(app::FitPlanApp& app, services::AuthService& auth,
+                          const std::string& google_client_id) {
     CROW_ROUTE(app, "/api/auth/register")
         .methods(crow::HTTPMethod::Post)([&auth](const crow::request& req) {
             try {
@@ -76,6 +78,26 @@ void register_auth_routes(app::FitPlanApp& app, services::AuthService& auth) {
             return http::problem_response(500, "Internal server error", ex.what());
         }
     });
+
+    // Public: lets the frontend decide whether to show the Google button.
+    CROW_ROUTE(app, "/api/auth/config")
+    ([google_client_id]() { return dto::config_response(google_client_id); });
+
+    // Always registered. When Google Sign-In is not configured,
+    // AuthService::login_with_google throws kInvalidInput -> 400, rather than the
+    // route 404ing.
+    CROW_ROUTE(app, "/api/auth/google")
+        .methods(crow::HTTPMethod::Post)([&auth](const crow::request& req) {
+            try {
+                const dto::GoogleLoginRequest body = dto::parse_google_login_request(req.body);
+                const services::AuthOutcome outcome = auth.login_with_google(body.id_token);
+                return dto::auth_response(200, outcome);
+            } catch (const services::AuthError& err) {
+                return problem_from(err);
+            } catch (const std::exception& ex) {
+                return http::problem_response(500, "Internal server error", ex.what());
+            }
+        });
 }
 
 }  // namespace fitplan::controllers

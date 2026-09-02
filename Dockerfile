@@ -9,7 +9,7 @@ FROM ubuntu:24.04 AS build
 # are needed because CMake FetchContent clones Crow, spdlog, SQLiteCpp, jwt-cpp.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential g++-13 cmake ninja-build pkg-config git ca-certificates \
-        libssl-dev libsodium-dev libsqlite3-dev libasio-dev \
+        libssl-dev libsodium-dev libsqlite3-dev libasio-dev libcurl4-openssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
@@ -36,10 +36,11 @@ RUN --mount=type=cache,target=/src/build/release/_deps \
 FROM ubuntu:24.04 AS runtime
 
 # The shared libraries `ldd build/release/fitplan` reports, nothing more.
-# libssl3t64 is Ubuntu 24.04's renamed libssl3 (64-bit time_t transition).
-# curl is only for the HEALTHCHECK below.
+# libssl3t64 / libcurl4t64 are Ubuntu 24.04's renamed libssl3 / libcurl4
+# (64-bit time_t transition). libcurl4t64 backs the outbound HTTPS the app now
+# does to fetch Google's JWKS. curl (the CLI) is only for the HEALTHCHECK below.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libssl3t64 libsodium23 libsqlite3-0 curl \
+        libssl3t64 libsodium23 libsqlite3-0 libcurl4t64 curl \
     && rm -rf /var/lib/apt/lists/*
 
 # An unprivileged account to run the server as.

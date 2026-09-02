@@ -20,6 +20,7 @@ namespace fitplan {
 //   FITPLAN_THREADS          worker threads, 0 = auto  (default 0)
 //   FITPLAN_WEB_DIR          static frontend directory (default web)
 //   FITPLAN_DOCS_DIR         API docs directory        (default docs)
+//   FITPLAN_GOOGLE_CLIENT_ID Google OAuth client id for Sign-In (default: empty)
 struct Config {
     std::string host = "0.0.0.0";
     std::uint16_t port = 8080;
@@ -31,6 +32,7 @@ struct Config {
     std::size_t thread_count = 0;
     std::string web_dir = "web";
     std::string docs_dir = "docs";
+    std::string google_client_id;
 
     // Builds a Config from the current environment. Never throws: malformed
     // values fall back to the default and are reported through spdlog::warn.
@@ -38,6 +40,10 @@ struct Config {
 
     // True when the JWT secret is still the built-in development placeholder.
     [[nodiscard]] bool uses_insecure_jwt_secret() const;
+
+    // True when a Google OAuth client id is configured. When false, the server
+    // does not register POST /api/auth/google and the frontend hides the button.
+    [[nodiscard]] bool google_sign_in_enabled() const;
 };
 
 }  // namespace fitplan

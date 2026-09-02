@@ -21,7 +21,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential g++-13 cmake ninja-build pkg-config clang-tidy \
-            libssl-dev libsodium-dev libsqlite3-dev libasio-dev
+            libssl-dev libsodium-dev libsqlite3-dev libasio-dev libcurl4-openssl-dev
 
       - name: Cache fetched dependencies
         uses: actions/cache@v4

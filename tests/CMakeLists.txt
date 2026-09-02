@@ -5,6 +5,10 @@ include(GoogleTest)
 set(FITPLAN_TEST_MIGRATIONS_DEFINE
     FITPLAN_TEST_MIGRATIONS_DIR="${PROJECT_SOURCE_DIR}/src/db/migrations")
 
+# Header-only helpers shared by unit and integration tests (RSA test keys, a
+# Google ID-token minter). On the include path for both binaries.
+set(FITPLAN_TEST_SUPPORT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/support")
+
 # ---------------------------------------------------------------------------
 # Unit tests - pure logic, no sockets.
 # ---------------------------------------------------------------------------
@@ -15,9 +19,12 @@ add_executable(fitplan_unit_tests
     unit/database_test.cpp
     unit/exercise_note_repository_test.cpp
     unit/exercise_repository_test.cpp
+    unit/google_id_token_verifier_test.cpp
+    unit/google_jwks_test.cpp
     unit/hashing_test.cpp
     unit/hashing_hardening_test.cpp
     unit/migration_set_test.cpp
+    unit/rsa_key_test.cpp
     unit/plan_item_repository_test.cpp
     unit/plan_repository_test.cpp
     unit/progress_service_test.cpp
@@ -35,6 +42,8 @@ target_link_libraries(fitplan_unit_tests PRIVATE
     GTest::gtest_main
     jwt-cpp::jwt-cpp)
 
+target_include_directories(fitplan_unit_tests PRIVATE ${FITPLAN_TEST_SUPPORT_DIR})
+
 target_compile_definitions(fitplan_unit_tests PRIVATE
     ${FITPLAN_TEST_MIGRATIONS_DEFINE})
 
@@ -51,6 +60,7 @@ add_executable(fitplan_integration_tests
     integration/auth_flow_test.cpp
     integration/exercise_flow_test.cpp
     integration/exercise_note_flow_test.cpp
+    integration/google_flow_test.cpp
     integration/plan_flow_test.cpp
     integration/session_flow_test.cpp)
 
@@ -58,7 +68,10 @@ target_link_libraries(fitplan_integration_tests PRIVATE
     fitplan_lib
     fitplan_warnings
     GTest::gtest_main
-    Threads::Threads)
+    Threads::Threads
+    jwt-cpp::jwt-cpp)
+
+target_include_directories(fitplan_integration_tests PRIVATE ${FITPLAN_TEST_SUPPORT_DIR})
 
 target_compile_definitions(fitplan_integration_tests PRIVATE
     ${FITPLAN_TEST_MIGRATIONS_DEFINE})

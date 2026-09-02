@@ -15,6 +15,7 @@ function showAuthView() {
   document.getElementById("coach-view").classList.add("hidden");
   document.getElementById("trainee-view").classList.add("hidden");
   document.getElementById("logout-btn").classList.add("hidden");
+  setupGoogleSignIn();
 }
 
 function selectCoachPanel(name) {
@@ -109,6 +110,67 @@ async function handleRegister(event) {
     onAuthSuccess(data);
   } catch (err) {
     showToast(err.detail || err.title || "Registration failed", true);
+  }
+}
+
+// --- Google sign-in --------------------------------------------
+// The one external script in the app. It is fetched only when the server
+// reports a client id, and only the first time the auth view is shown.
+let googleClientId = null;
+let googleReady = false;
+
+async function loadAuthConfig() {
+  try {
+    const config = await api.get("/api/auth/config");
+    googleClientId = config.google_client_id || null;
+  } catch (err) {
+    googleClientId = null;
+  }
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.defer = true;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error("failed to load " + src));
+    document.head.appendChild(script);
+  });
+}
+
+async function setupGoogleSignIn() {
+  if (!googleClientId || googleReady) {
+    return;
+  }
+  try {
+    await loadScript("https://accounts.google.com/gsi/client");
+    google.accounts.id.initialize({
+      client_id: googleClientId,
+      callback: handleGoogleCredential,
+    });
+    google.accounts.id.renderButton(document.getElementById("google-button"), {
+      theme: "outline",
+      size: "large",
+      text: "continue_with",
+      width: 260,
+    });
+    document.getElementById("google-signin").classList.remove("hidden");
+    googleReady = true;
+  } catch (err) {
+    // Script blocked or offline: leave the button hidden, password login still works.
+  }
+}
+
+async function handleGoogleCredential(response) {
+  try {
+    const data = await api.post("/api/auth/google", {
+      id_token: response.credential,
+    });
+    onAuthSuccess(data);
+  } catch (err) {
+    showToast(err.detail || err.title || "Google sign-in failed", true);
   }
 }
 
@@ -1534,6 +1596,8 @@ async function start() {
     showAuthView();
     showToast("Your session expired. Please log in again.", true);
   });
+
+  await loadAuthConfig();
 
   const token = api.getToken();
   const cachedUser = api.getUser();

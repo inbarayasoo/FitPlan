@@ -32,6 +32,8 @@
 #include "repositories/SessionSetRepository.hpp"
 #include "repositories/UserRepository.hpp"
 #include "services/AuthService.hpp"
+#include "services/GoogleIdTokenVerifier.hpp"
+#include "services/GoogleJwks.hpp"
 #include "services/PlanService.hpp"
 #include "services/SessionService.hpp"
 
@@ -120,7 +122,20 @@ int main(int argc, char** argv) {
     fitplan::repositories::SessionRepository sessions_repo(database->connection());
     fitplan::repositories::SessionSetRepository session_sets(database->connection());
 
-    fitplan::services::AuthService auth(users, config.jwt_secret, config.jwt_ttl_seconds);
+    // Google Sign-In is optional: build the verifier only when a client id is
+    // configured. Both objects must outlive `auth`, which borrows the verifier.
+    std::optional<fitplan::services::GoogleJwksCache> google_jwks;
+    std::optional<fitplan::services::GoogleIdTokenVerifier> google_verifier;
+    if (config.google_sign_in_enabled()) {
+        google_jwks.emplace();  // default fetcher: a real HTTPS GET of Google's JWKS
+        google_verifier.emplace(config.google_client_id, *google_jwks);
+        spdlog::info("Google Sign-In enabled (client id {})", config.google_client_id);
+    } else {
+        spdlog::info("Google Sign-In disabled (FITPLAN_GOOGLE_CLIENT_ID is unset)");
+    }
+
+    fitplan::services::AuthService auth(users, config.jwt_secret, config.jwt_ttl_seconds,
+                                        google_verifier ? &*google_verifier : nullptr);
     fitplan::services::PlanService plan_service(database->connection(), plans_repo, plan_items,
                                                 roster, exercises);
     fitplan::services::SessionService session_service(
@@ -141,7 +156,7 @@ int main(int argc, char** argv) {
         return json_response(200, body);
     });
 
-    fitplan::controllers::register_auth_routes(app, auth);
+    fitplan::controllers::register_auth_routes(app, auth, config.google_client_id);
     fitplan::controllers::register_exercise_routes(app, exercises);
     fitplan::controllers::register_plan_routes(app, plan_service);
     fitplan::controllers::register_trainee_routes(app, users, roster);
