@@ -90,8 +90,12 @@ void register_auth_routes(app::FitPlanApp& app, services::AuthService& auth,
         .methods(crow::HTTPMethod::Post)([&auth](const crow::request& req) {
             try {
                 const dto::GoogleLoginRequest body = dto::parse_google_login_request(req.body);
-                const services::AuthOutcome outcome = auth.login_with_google(body.id_token);
-                return dto::auth_response(200, outcome);
+                const services::GoogleLoginResult result =
+                    auth.login_with_google(body.id_token, body.role);
+                if (result.needs_role) {
+                    return dto::role_needed_response();
+                }
+                return dto::auth_response(200, result.outcome);
             } catch (const services::AuthError& err) {
                 return problem_from(err);
             } catch (const std::exception& ex) {

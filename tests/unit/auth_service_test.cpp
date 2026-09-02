@@ -167,46 +167,68 @@ protected:
     AuthService auth_{users_, kSecret, kTtl, &verifier_};
 };
 
-TEST_F(AuthServiceGoogleTest, FirstSignInCreatesATraineeAccountWithNoPassword) {
-    const auto out = auth_.login_with_google(mint_google_id_token(key_));
+TEST_F(AuthServiceGoogleTest, FirstSignInWithoutARoleAsksForOneAndCreatesNothing) {
+    const auto result = auth_.login_with_google(mint_google_id_token(key_));
 
-    EXPECT_GT(out.user.id, 0);
-    EXPECT_EQ(out.user.email, "gina@example.com");
-    EXPECT_EQ(out.user.role, "trainee");
-    EXPECT_EQ(out.user.auth_provider, "google");
-    EXPECT_EQ(out.user.display_name, "Gina G");
-    EXPECT_TRUE(out.user.password_hash.empty());
+    EXPECT_TRUE(result.needs_role);
+    EXPECT_TRUE(result.outcome.access_token.empty());
+    EXPECT_FALSE(users_.find_by_email("gina@example.com").has_value());
+}
 
-    const auto claims = verify_access_token(out.access_token, kSecret);
+TEST_F(AuthServiceGoogleTest, FirstSignInWithARoleCreatesThatAccountWithNoPassword) {
+    const auto result = auth_.login_with_google(mint_google_id_token(key_), "coach");
+
+    EXPECT_FALSE(result.needs_role);
+    EXPECT_GT(result.outcome.user.id, 0);
+    EXPECT_EQ(result.outcome.user.email, "gina@example.com");
+    EXPECT_EQ(result.outcome.user.role, "coach");
+    EXPECT_EQ(result.outcome.user.auth_provider, "google");
+    EXPECT_EQ(result.outcome.user.display_name, "Gina G");
+    EXPECT_TRUE(result.outcome.user.password_hash.empty());
+
+    const auto claims = verify_access_token(result.outcome.access_token, kSecret);
     ASSERT_TRUE(claims.has_value());
-    EXPECT_EQ(claims->user_id, out.user.id);
-    EXPECT_EQ(claims->role, "trainee");
+    EXPECT_EQ(claims->role, "coach");
 }
 
-TEST_F(AuthServiceGoogleTest, SecondSignInReturnsTheSameAccount) {
-    const auto first = auth_.login_with_google(mint_google_id_token(key_));
-    const auto second = auth_.login_with_google(mint_google_id_token(key_));
-
-    EXPECT_EQ(second.user.id, first.user.id);
+TEST_F(AuthServiceGoogleTest, FirstSignInWithAnUnknownRoleIsRejected) {
+    try {
+        auth_.login_with_google(mint_google_id_token(key_), "wizard");
+        FAIL() << "expected AuthError";
+    } catch (const AuthError& e) {
+        EXPECT_EQ(e.kind(), AuthErrorKind::kInvalidInput);
+    }
 }
 
-TEST_F(AuthServiceGoogleTest, LinksToAnExistingLocalAccountByVerifiedEmail) {
+TEST_F(AuthServiceGoogleTest, SecondSignInIgnoresTheRoleAndReturnsTheSameAccount) {
+    const auto first = auth_.login_with_google(mint_google_id_token(key_), "trainee");
+    ASSERT_FALSE(first.needs_role);
+
+    const auto second = auth_.login_with_google(mint_google_id_token(key_), "coach");
+
+    EXPECT_FALSE(second.needs_role);
+    EXPECT_EQ(second.outcome.user.id, first.outcome.user.id);
+    EXPECT_EQ(second.outcome.user.role, "trainee");  // the role from the retry is ignored
+}
+
+TEST_F(AuthServiceGoogleTest, LinksToAnExistingLocalAccountByVerifiedEmailKeepingItsRole) {
     const auto local =
         auth_.register_user("coach@example.com", "password123", "coach", "Coach One");
 
     GoogleTokenOptions opt;
     opt.email = "coach@example.com";
     opt.subject = "google-sub-for-coach";
-    const auto out = auth_.login_with_google(mint_google_id_token(key_, opt));
+    // A role in the request is ignored on the link path.
+    const auto result = auth_.login_with_google(mint_google_id_token(key_, opt), "trainee");
 
-    EXPECT_EQ(out.user.id, local.user.id);
-    EXPECT_EQ(out.user.role, "coach");           // unchanged
-    EXPECT_EQ(out.user.auth_provider, "local");  // records how the account began
-    EXPECT_EQ(out.user.google_sub, "google-sub-for-coach");
+    EXPECT_FALSE(result.needs_role);
+    EXPECT_EQ(result.outcome.user.id, local.user.id);
+    EXPECT_EQ(result.outcome.user.role, "coach");           // unchanged
+    EXPECT_EQ(result.outcome.user.auth_provider, "local");  // records how the account began
+    EXPECT_EQ(result.outcome.user.google_sub, "google-sub-for-coach");
 
-    // A later Google sign-in now resolves straight to that account.
     const auto again = auth_.login_with_google(mint_google_id_token(key_, opt));
-    EXPECT_EQ(again.user.id, local.user.id);
+    EXPECT_EQ(again.outcome.user.id, local.user.id);
 }
 
 TEST_F(AuthServiceGoogleTest, RefusesToLinkWhenTheGoogleEmailIsNotVerified) {
@@ -217,7 +239,7 @@ TEST_F(AuthServiceGoogleTest, RefusesToLinkWhenTheGoogleEmailIsNotVerified) {
     opt.email_verified = false;
 
     try {
-        auth_.login_with_google(mint_google_id_token(key_, opt));
+        auth_.login_with_google(mint_google_id_token(key_, opt), "trainee");
         FAIL() << "expected AuthError";
     } catch (const AuthError& e) {
         EXPECT_EQ(e.kind(), AuthErrorKind::kEmailAlreadyUsed);
@@ -236,9 +258,9 @@ TEST_F(AuthServiceGoogleTest, RejectsATokenThatFailsVerification) {
 TEST_F(AuthServiceGoogleTest, FallsBackToTheEmailWhenGoogleSendsNoName) {
     GoogleTokenOptions opt;
     opt.name = "";
-    const auto out = auth_.login_with_google(mint_google_id_token(key_, opt));
+    const auto result = auth_.login_with_google(mint_google_id_token(key_, opt), "trainee");
 
-    EXPECT_EQ(out.user.display_name, "gina@example.com");
+    EXPECT_EQ(result.outcome.user.display_name, "gina@example.com");
 }
 
 }  // namespace

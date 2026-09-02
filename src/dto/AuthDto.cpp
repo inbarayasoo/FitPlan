@@ -69,9 +69,12 @@ LoginRequest parse_login_request(const std::string& body) {
 
 GoogleLoginRequest parse_google_login_request(const std::string& body) {
     const json obj = parse_object_or_throw(body);
-    return GoogleLoginRequest{
-        required_string(obj, "id_token"),
-    };
+    GoogleLoginRequest req;
+    req.id_token = required_string(obj, "id_token");
+    if (obj.contains("role") && obj.at("role").is_string()) {
+        req.role = obj.at("role").get<std::string>();
+    }
+    return req;
 }
 
 crow::response auth_response(int status, const services::AuthOutcome& outcome) {
@@ -87,6 +90,10 @@ crow::response user_response(int status, const models::User& user) {
 
 crow::response config_response(const std::string& google_client_id) {
     return json_response(200, json{{"google_client_id", google_client_id}});
+}
+
+crow::response role_needed_response() {
+    return json_response(200, json{{"needs_role", true}});
 }
 
 }  // namespace fitplan::dto

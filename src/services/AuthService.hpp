@@ -16,6 +16,15 @@ struct AuthOutcome {
     std::string access_token;
 };
 
+// The result of a Google login attempt. When `needs_role` is true, the token
+// would create a brand-new account and no role was supplied: nothing was
+// created, and the caller must ask the user for a role and call again with it.
+// Otherwise `outcome` holds the token and user.
+struct GoogleLoginResult {
+    bool needs_role = false;
+    AuthOutcome outcome;
+};
+
 // Registration, login, and "who does this token belong to" - the rules, with no
 // HTTP or JSON in sight. Borrows the UserRepository; owns its JWT settings.
 // `google_verifier` is optional: null when FITPLAN_GOOGLE_CLIENT_ID is unset, in
@@ -40,15 +49,18 @@ public:
     // local account as needed:
     //   1. an account already linked to this Google id  -> log in
     //   2. a password account with the same Google-verified email -> link, log in
-    //   3. otherwise -> create a new trainee account (auth_provider = 'google',
-    //      no password) and log in
-    // Issues the same FitPlan access token as password login. Throws AuthError:
-    //   kInvalidInput       - Google sign-in is not configured, or the token
-    //                         carries no email address
+    //   3. otherwise, a brand-new user:
+    //        - `role` empty     -> return {needs_role = true}, create nothing
+    //        - `role` valid     -> create the account with it (auth_provider =
+    //                              'google', no password) and log in
+    // `role` is ignored in cases 1 and 2. Issues the same FitPlan access token as
+    // password login. Throws AuthError:
+    //   kInvalidInput       - Google sign-in is not configured, the token carries
+    //                         no email, or `role` is set but not trainee/coach
     //   kInvalidCredentials - the token failed verification
     //   kEmailAlreadyUsed   - a password account owns the email but the token's
     //                         email is not Google-verified, so linking is unsafe
-    AuthOutcome login_with_google(const std::string& id_token);
+    GoogleLoginResult login_with_google(const std::string& id_token, const std::string& role = "");
 
     // Loads the user named by a verified token's subject. Throws AuthError:
     //   kInvalidCredentials - the user no longer exists

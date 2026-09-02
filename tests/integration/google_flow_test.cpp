@@ -63,8 +63,11 @@ protected:
         return http_request(port_, "GET", path, "", bearer);
     }
 
-    static std::string google_body(const std::string& id_token) {
-        return R"({"id_token":")" + id_token + R"("})";
+    static std::string google_body(const std::string& id_token, const std::string& role = "") {
+        if (role.empty()) {
+            return R"({"id_token":")" + id_token + R"("})";
+        }
+        return R"({"id_token":")" + id_token + R"(","role":")" + role + R"("})";
     }
 
     static constexpr const char* kSecret = "integration-secret";
@@ -92,16 +95,22 @@ TEST_F(GoogleFlowTest, ConfigReportsTheClientId) {
     EXPECT_EQ(json_string(res.body, "google_client_id"), kTestGoogleClientId);
 }
 
-TEST_F(GoogleFlowTest, FirstGoogleLoginCreatesAnAccountAndReturnsAWorkingToken) {
-    const auto res = post("/api/auth/google", google_body(mint_google_id_token(key_)));
-    ASSERT_EQ(res.status, 200);
+TEST_F(GoogleFlowTest, FirstGoogleLoginWithoutARoleAsksForOneThenCreates) {
+    const std::string id_token = mint_google_id_token(key_);
 
-    const std::string token = json_string(res.body, "access_token");
+    const auto ask = post("/api/auth/google", google_body(id_token));
+    ASSERT_EQ(ask.status, 200);
+    EXPECT_NE(ask.body.find(R"("needs_role":true)"), std::string::npos);
+    EXPECT_EQ(ask.body.find("access_token"), std::string::npos);
+
+    const auto done = post("/api/auth/google", google_body(id_token, "trainee"));
+    ASSERT_EQ(done.status, 200);
+    const std::string token = json_string(done.body, "access_token");
     ASSERT_FALSE(token.empty());
-    EXPECT_NE(res.body.find(R"("email":"gina@example.com")"), std::string::npos);
-    EXPECT_NE(res.body.find(R"("auth_provider":"google")"), std::string::npos);
-    EXPECT_NE(res.body.find(R"("role":"trainee")"), std::string::npos);
-    EXPECT_EQ(res.body.find("password_hash"), std::string::npos);
+    EXPECT_NE(done.body.find(R"("email":"gina@example.com")"), std::string::npos);
+    EXPECT_NE(done.body.find(R"("auth_provider":"google")"), std::string::npos);
+    EXPECT_NE(done.body.find(R"("role":"trainee")"), std::string::npos);
+    EXPECT_EQ(done.body.find("password_hash"), std::string::npos);
 
     // The FitPlan token it returns works on a normal protected route.
     const auto me = get("/api/auth/me", token);
@@ -110,13 +119,21 @@ TEST_F(GoogleFlowTest, FirstGoogleLoginCreatesAnAccountAndReturnsAWorkingToken) 
     EXPECT_EQ(json_string(me.body, "auth_provider"), "google");
 }
 
-TEST_F(GoogleFlowTest, SecondGoogleLoginReturnsTheSameAccount) {
-    const auto first = post("/api/auth/google", google_body(mint_google_id_token(key_)));
-    const auto second = post("/api/auth/google", google_body(mint_google_id_token(key_)));
+TEST_F(GoogleFlowTest, ACoachRoleOnTheFirstCallCreatesACoach) {
+    const auto res = post("/api/auth/google", google_body(mint_google_id_token(key_), "coach"));
+
+    ASSERT_EQ(res.status, 200);
+    EXPECT_NE(res.body.find(R"("role":"coach")"), std::string::npos);
+}
+
+TEST_F(GoogleFlowTest, SecondGoogleLoginIgnoresTheRoleAndReturnsTheSameAccount) {
+    const auto first = post("/api/auth/google", google_body(mint_google_id_token(key_), "trainee"));
+    const auto second = post("/api/auth/google", google_body(mint_google_id_token(key_), "coach"));
     ASSERT_EQ(first.status, 200);
     ASSERT_EQ(second.status, 200);
 
     EXPECT_EQ(json_number(first.body, "id"), json_number(second.body, "id"));
+    EXPECT_NE(second.body.find(R"("role":"trainee")"), std::string::npos);
 }
 
 TEST_F(GoogleFlowTest, GoogleLoginLinksToAPasswordAccountWithTheSameVerifiedEmail) {
@@ -127,9 +144,11 @@ TEST_F(GoogleFlowTest, GoogleLoginLinksToAPasswordAccountWithTheSameVerifiedEmai
     GoogleTokenOptions opt;
     opt.email = "coach@itest.com";
     opt.subject = "sub-for-coach";
+    // The link path never asks for a role, even when none is sent.
     const auto res = post("/api/auth/google", google_body(mint_google_id_token(key_, opt)));
 
     ASSERT_EQ(res.status, 200);
+    EXPECT_EQ(res.body.find("needs_role"), std::string::npos);
     EXPECT_EQ(json_number(res.body, "id"), local_id);
     EXPECT_NE(res.body.find(R"("role":"coach")"), std::string::npos);  // role is kept
 }

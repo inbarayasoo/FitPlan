@@ -53,6 +53,26 @@ body {
   font-size: 0.85rem;
 }
 
+.google-role {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.google-role p {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.role-choice {
+  display: flex;
+  gap: 10px;
+}
+
+.role-choice button {
+  flex: 1;
+}
+
 /* Top bar ---------------------------------------------------------------- */
 .topbar {
   display: flex;

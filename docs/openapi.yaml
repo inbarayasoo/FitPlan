@@ -116,10 +116,13 @@ paths:
       description: >
         Verifies a Google "Sign in with Google" ID token (RS256 against Google's
         published keys; issuer, audience and expiry checked) and logs the user
-        in. If no account is linked to that Google identity yet, one is linked by
-        Google-verified email, or a new trainee account is created. Returns the
-        same token shape as password login. 400 when Google Sign-In is not
-        configured on the server.
+        in. If an account is already linked to that Google identity it is used;
+        otherwise it is linked to a password account with the same
+        Google-verified email. If neither matches, a new account is created - but
+        only once a `role` is supplied: call first without `role`, and if the
+        response is `{ "needs_role": true }` call again with the user's choice.
+        Returns the same token shape as password login. 400 when Google Sign-In
+        is not configured on the server.
       operationId: postAuthGoogle
       security: []
       requestBody:
@@ -130,11 +133,15 @@ paths:
               $ref: "#/components/schemas/GoogleLoginRequest"
       responses:
         "200":
-          description: Authenticated.
+          description: >
+            Authenticated (`AuthOutcome`), or `{ "needs_role": true }` when the
+            token would create a new account and no role was supplied.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthOutcome"
+                oneOf:
+                  - $ref: "#/components/schemas/AuthOutcome"
+                  - $ref: "#/components/schemas/RoleNeeded"
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "409": { $ref: "#/components/responses/Conflict" }
@@ -716,6 +723,21 @@ components:
         id_token:
           type: string
           description: The JWT credential returned by Google Identity Services.
+        role:
+          type: string
+          enum: [trainee, coach]
+          description: >
+            Read only when this token would create a brand-new account. Omit it
+            on the first call; supply it on the retry after a
+            `{ "needs_role": true }` response.
+
+    RoleNeeded:
+      type: object
+      required: [needs_role]
+      properties:
+        needs_role:
+          type: boolean
+          description: Always true. Retry the request with a `role`.
 
     AuthConfig:
       type: object
