@@ -70,12 +70,6 @@ starting a server. Every error response is uniform `application/problem+json`.
 Configuration is via `FITPLAN_*` environment variables with development-safe
 defaults; the full list is in [`src/config/Config.hpp`](src/config/Config.hpp).
 
-## Roadmap
-
-- [x] Google Sign-In (OIDC) as a second identity provider
-- [ ] Refresh tokens
-- [ ] Body-measurement log, coach/trainee messaging, weekly calendar view
-
 ## License
 
 MIT - see [LICENSE](LICENSE).
