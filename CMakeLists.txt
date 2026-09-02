@@ -79,11 +79,14 @@ add_library(fitplan_lib STATIC
     src/repositories/SessionSetRepository.cpp
     src/repositories/UserRepository.cpp
     src/services/AuthService.cpp
+    src/services/GoogleIdTokenVerifier.cpp
+    src/services/GoogleJwks.cpp
     src/services/PlanService.cpp
     src/services/ProgressService.cpp
     src/services/SessionService.cpp
     src/util/Hashing.cpp
     src/util/Jwt.cpp
+    src/util/RsaKey.cpp
     src/util/Validation.cpp)
 
 target_include_directories(fitplan_lib PUBLIC
@@ -99,7 +102,9 @@ target_link_libraries(fitplan_lib
     PRIVATE
         fitplan_warnings
         PkgConfig::libsodium
-        jwt-cpp::jwt-cpp)
+        jwt-cpp::jwt-cpp
+        cpr::cpr
+        OpenSSL::Crypto)
 
 # ---------------------------------------------------------------------------
 # Server executable

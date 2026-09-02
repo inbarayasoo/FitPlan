@@ -13,6 +13,13 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(libsodium REQUIRED IMPORTED_TARGET libsodium)
 
 # ---------------------------------------------------------------------------
+# OpenSSL - already pulled in transitively by jwt-cpp and cpr, but Step 9 calls
+# libcrypto directly (building an RSA public key from a JWK's modulus/exponent),
+# so depend on it explicitly and link OpenSSL::Crypto into fitplan_lib.
+# ---------------------------------------------------------------------------
+find_package(OpenSSL REQUIRED)
+
+# ---------------------------------------------------------------------------
 # nlohmann/json - JSON parsing / serialization
 # ---------------------------------------------------------------------------
 set(JSON_BuildTests OFF CACHE INTERNAL "")
@@ -75,6 +82,22 @@ FetchContent_Declare(jwt-cpp
     SYSTEM)
 
 # ---------------------------------------------------------------------------
+# cpr - a small, requests-style C++ wrapper over libcurl for outbound HTTP.
+# Step 9 (Google Sign-In) uses it to fetch Google's public signing keys (JWKS)
+# over HTTPS. Built against the system libcurl (libcurl4-openssl-dev) instead of
+# a bundled copy - same policy as SQLite and OpenSSL: one distro-patched TLS
+# stack the platform keeps updated.
+# ---------------------------------------------------------------------------
+set(CPR_USE_SYSTEM_CURL ON CACHE BOOL "" FORCE)
+set(CPR_ENABLE_SSL ON CACHE BOOL "" FORCE)
+set(CPR_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(cpr
+    GIT_REPOSITORY https://github.com/libcpr/cpr.git
+    GIT_TAG        1.11.2
+    GIT_SHALLOW    TRUE
+    SYSTEM)
+
+# ---------------------------------------------------------------------------
 # GoogleTest - unit / integration test framework
 # ---------------------------------------------------------------------------
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -86,7 +109,7 @@ FetchContent_Declare(googletest
     SYSTEM)
 
 if(FITPLAN_BUILD_TESTS)
-    FetchContent_MakeAvailable(nlohmann_json spdlog Crow SQLiteCpp jwt-cpp googletest)
+    FetchContent_MakeAvailable(nlohmann_json spdlog Crow SQLiteCpp jwt-cpp cpr googletest)
 else()
-    FetchContent_MakeAvailable(nlohmann_json spdlog Crow SQLiteCpp jwt-cpp)
+    FetchContent_MakeAvailable(nlohmann_json spdlog Crow SQLiteCpp jwt-cpp cpr)
 endif()

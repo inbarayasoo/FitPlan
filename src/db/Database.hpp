@@ -27,6 +27,7 @@ public:
 private:
     void enable_foreign_keys();
     void apply_pending_migrations(const std::string& migrations_dir);
+    void record_migration(int version);
 
     SQLite::Database db_;
 };

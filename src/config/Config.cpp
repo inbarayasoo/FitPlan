@@ -55,11 +55,16 @@ Config Config::from_env() {
     cfg.thread_count = env_int_or<std::size_t>("FITPLAN_THREADS", cfg.thread_count);
     cfg.web_dir = env_or("FITPLAN_WEB_DIR", cfg.web_dir);
     cfg.docs_dir = env_or("FITPLAN_DOCS_DIR", cfg.docs_dir);
+    cfg.google_client_id = env_or("FITPLAN_GOOGLE_CLIENT_ID", cfg.google_client_id);
     return cfg;
 }
 
 bool Config::uses_insecure_jwt_secret() const {
     return jwt_secret == "dev-insecure-secret-change-me";
+}
+
+bool Config::google_sign_in_enabled() const {
+    return !google_client_id.empty();
 }
 
 }  // namespace fitplan

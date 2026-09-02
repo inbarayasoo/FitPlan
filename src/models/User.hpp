@@ -10,10 +10,12 @@ namespace fitplan::models {
 struct User {
     std::int64_t id = 0;
     std::string email;
-    std::string password_hash;
-    std::string role;  // "trainee" | "coach"
+    std::string password_hash;  // empty for a Google-only account (NULL in the DB)
+    std::string role;           // "trainee" | "coach"
     std::string display_name;
     std::string created_at;
+    std::string auth_provider = "local";  // "local" | "google" - who created the account
+    std::string google_sub;               // Google "sub" claim; empty for local accounts
 };
 
 }  // namespace fitplan::models

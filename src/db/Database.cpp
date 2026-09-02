@@ -36,16 +36,30 @@ void Database::apply_pending_migrations(const std::string& migrations_dir) {
             continue;
         }
 
-        SQLite::Transaction tx(db_);
-        db_.exec(m.sql);
+        // Most migrations run inside one transaction, so any failure rolls the
+        // whole file back. A migration that has to toggle PRAGMA foreign_keys
+        // (a no-op inside a transaction) opts out with a "fitplan:no-transaction"
+        // marker and takes charge of its own BEGIN/COMMIT.
+        const bool self_managed = m.sql.find("fitplan:no-transaction") != std::string::npos;
 
-        SQLite::Statement record(db_, "INSERT INTO schema_version(version) VALUES (?)");
-        record.bind(1, m.version);
-        record.exec();
+        if (self_managed) {
+            db_.exec(m.sql);
+            record_migration(m.version);
+        } else {
+            SQLite::Transaction tx(db_);
+            db_.exec(m.sql);
+            record_migration(m.version);
+            tx.commit();
+        }
 
-        tx.commit();
         spdlog::info("Applied migration {} ({})", m.version, m.name);
     }
+}
+
+void Database::record_migration(int version) {
+    SQLite::Statement record(db_, "INSERT INTO schema_version(version) VALUES (?)");
+    record.bind(1, version);
+    record.exec();
 }
 
 }  // namespace fitplan::db

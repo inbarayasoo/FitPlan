@@ -29,6 +29,30 @@ body {
   display: none !important;
 }
 
+/* Google sign-in ------------------------------------------------------- */
+.google-signin {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.or-divider {
+  width: 100%;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  line-height: 0;
+  margin: 4px 0 8px;
+}
+
+.or-divider span {
+  background: var(--surface);
+  padding: 0 10px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 /* Top bar ---------------------------------------------------------------- */
 .topbar {
   display: flex;

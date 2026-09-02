@@ -16,6 +16,9 @@ services:
       # default below is for development only and the server logs a warning about it.
       FITPLAN_JWT_SECRET: ${FITPLAN_JWT_SECRET:-dev-insecure-change-me}
       FITPLAN_LOG_LEVEL: ${FITPLAN_LOG_LEVEL:-info}
+      # Optional: a Google OAuth 2.0 client id turns on "Sign in with Google".
+      # Leave it unset (the default) and the feature stays off, button hidden.
+      FITPLAN_GOOGLE_CLIENT_ID: ${FITPLAN_GOOGLE_CLIENT_ID:-}
     volumes:
       - fitplan-data:/data
     restart: unless-stopped

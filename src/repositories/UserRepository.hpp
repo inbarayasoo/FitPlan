@@ -26,8 +26,16 @@ public:
     // Look up by email - the key used at login. std::nullopt if no such user.
     std::optional<models::User> find_by_email(const std::string& email);
 
+    // Look up by Google's "sub" claim - the key used when a Google token comes
+    // back. std::nullopt if no account is linked to that Google identity yet.
+    std::optional<models::User> find_by_google_sub(const std::string& google_sub);
+
     // True if a row with this email already exists.
     bool email_exists(const std::string& email);
+
+    // Attaches a Google identity to an existing account (found by verified email).
+    // Leaves auth_provider untouched: it records how the account was created.
+    void link_google(std::int64_t user_id, const std::string& google_sub);
 
 private:
     SQLite::Database& db_;

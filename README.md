@@ -23,13 +23,18 @@ docker compose up --build
 For a non-default signing key, put `FITPLAN_JWT_SECRET=...` in a local `.env` file
 first. Data persists in the `fitplan-data` volume (`docker compose down -v` wipes it).
 
+**Sign in with Google** (optional): add `FITPLAN_GOOGLE_CLIENT_ID=<OAuth 2.0 web
+client id>` to `.env`, with `http://localhost:8080` registered as an authorized
+JavaScript origin in Google Cloud. Unset, the feature stays off and the button is
+hidden; email + password always works.
+
 ## Build from source
 
 WSL2 / Ubuntu 24.04:
 
 ```bash
 sudo apt install -y build-essential g++-13 cmake ninja-build git pkg-config \
-    libssl-dev libsodium-dev libsqlite3-dev libasio-dev
+    libssl-dev libsodium-dev libsqlite3-dev libasio-dev libcurl4-openssl-dev
 
 cmake --preset dev && cmake --build --preset dev
 ./build/dev/fitplan            # http://localhost:8080
@@ -52,7 +57,9 @@ JWT HS256 ([jwt-cpp](https://github.com/Thalhammer/jwt-cpp)) + Argon2id
 ([libsodium](https://doc.libsodium.org/)) &middot;
 [nlohmann/json](https://github.com/nlohmann/json) &middot;
 [spdlog](https://github.com/gabime/spdlog) &middot; GoogleTest &middot;
-OpenAPI 3 + Swagger UI &middot; Docker &middot; GitHub Actions.
+OpenAPI 3 + Swagger UI &middot; Docker &middot; GitHub Actions &middot; Google
+Sign-In / OIDC ([cpr](https://github.com/libcpr/cpr) for Google's JWKS, RS256
+verification via jwt-cpp).
 
 ## Architecture
 
@@ -65,7 +72,7 @@ defaults; the full list is in [`src/config/Config.hpp`](src/config/Config.hpp).
 
 ## Roadmap
 
-- [ ] Google Sign-In (OIDC) as a second identity provider
+- [x] Google Sign-In (OIDC) as a second identity provider
 - [ ] Refresh tokens
 - [ ] Body-measurement log, coach/trainee messaging, weekly calendar view
 

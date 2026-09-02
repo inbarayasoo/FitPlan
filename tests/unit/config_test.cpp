@@ -37,7 +37,9 @@ TEST_F(ConfigEnvTest, UsesDefaultsWhenEnvironmentIsEmpty) {
     EXPECT_EQ(cfg.thread_count, 0u);
     EXPECT_EQ(cfg.web_dir, "web");
     EXPECT_EQ(cfg.docs_dir, "docs");
+    EXPECT_EQ(cfg.google_client_id, "");
     EXPECT_TRUE(cfg.uses_insecure_jwt_secret());
+    EXPECT_FALSE(cfg.google_sign_in_enabled());
 }
 
 TEST_F(ConfigEnvTest, ReadsOverridesFromEnvironment) {
@@ -50,6 +52,7 @@ TEST_F(ConfigEnvTest, ReadsOverridesFromEnvironment) {
     set_env("FITPLAN_THREADS", "4");
     set_env("FITPLAN_WEB_DIR", "/opt/fitplan/web");
     set_env("FITPLAN_DOCS_DIR", "/opt/fitplan/docs");
+    set_env("FITPLAN_GOOGLE_CLIENT_ID", "123-abc.apps.googleusercontent.com");
 
     const auto cfg = fitplan::Config::from_env();
 
@@ -61,7 +64,9 @@ TEST_F(ConfigEnvTest, ReadsOverridesFromEnvironment) {
     EXPECT_EQ(cfg.thread_count, 4u);
     EXPECT_EQ(cfg.web_dir, "/opt/fitplan/web");
     EXPECT_EQ(cfg.docs_dir, "/opt/fitplan/docs");
+    EXPECT_EQ(cfg.google_client_id, "123-abc.apps.googleusercontent.com");
     EXPECT_FALSE(cfg.uses_insecure_jwt_secret());
+    EXPECT_TRUE(cfg.google_sign_in_enabled());
 }
 
 TEST_F(ConfigEnvTest, InvalidIntegerFallsBackToDefault) {
