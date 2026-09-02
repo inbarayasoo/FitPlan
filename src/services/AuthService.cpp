@@ -62,7 +62,8 @@ AuthOutcome AuthService::login(const std::string& email, const std::string& pass
     return {*user, sign_token_for(*user)};
 }
 
-AuthOutcome AuthService::login_with_google(const std::string& id_token) {
+GoogleLoginResult AuthService::login_with_google(const std::string& id_token,
+                                                 const std::string& role) {
     if (google_verifier_ == nullptr) {
         throw AuthError(AuthErrorKind::kInvalidInput, "Google sign-in is not enabled");
     }
@@ -72,21 +73,22 @@ AuthOutcome AuthService::login_with_google(const std::string& id_token) {
         throw AuthError(AuthErrorKind::kInvalidCredentials, "invalid Google token");
     }
 
-    // 1. An account is already linked to this Google identity.
+    // 1. An account is already linked to this Google identity. `role` is ignored.
     if (const auto linked = users_.find_by_google_sub(identity->subject)) {
-        return {*linked, sign_token_for(*linked)};
+        return {false, {*linked, sign_token_for(*linked)}};
     }
 
     // 2. A password account owns this address, and Google vouches for it: link.
+    //    `role` is ignored - the account keeps the role it was created with.
     if (!identity->email.empty() && identity->email_verified) {
         if (const auto by_email = users_.find_by_email(identity->email)) {
             users_.link_google(by_email->id, identity->subject);
             const models::User refreshed = users_.find_by_id(by_email->id).value();
-            return {refreshed, sign_token_for(refreshed)};
+            return {false, {refreshed, sign_token_for(refreshed)}};
         }
     }
 
-    // 3. Brand-new user: create a trainee account with no password.
+    // 3. A brand-new user.
     if (identity->email.empty()) {
         throw AuthError(AuthErrorKind::kInvalidInput,
                         "the Google account has no email address to register with");
@@ -97,16 +99,23 @@ AuthOutcome AuthService::login_with_google(const std::string& id_token) {
         throw AuthError(AuthErrorKind::kEmailAlreadyUsed,
                         "an account with this email already exists; sign in with your password");
     }
+    if (role.empty()) {
+        // We will not guess the role. The caller asks the user and calls again.
+        return {true, {}};
+    }
+    if (!is_valid_role(role)) {
+        throw AuthError(AuthErrorKind::kInvalidInput, "role must be 'trainee' or 'coach'");
+    }
 
     models::User to_create;
     to_create.email = identity->email;
-    to_create.role = "trainee";
+    to_create.role = role;
     to_create.display_name = identity->name.empty() ? identity->email : identity->name;
     to_create.auth_provider = "google";
     to_create.google_sub = identity->subject;
 
     const models::User created = users_.create(to_create);
-    return {created, sign_token_for(created)};
+    return {false, {created, sign_token_for(created)}};
 }
 
 models::User AuthService::authenticated_user(std::int64_t user_id) {

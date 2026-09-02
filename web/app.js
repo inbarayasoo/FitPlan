@@ -15,6 +15,7 @@ function showAuthView() {
   document.getElementById("coach-view").classList.add("hidden");
   document.getElementById("trainee-view").classList.add("hidden");
   document.getElementById("logout-btn").classList.add("hidden");
+  resetGoogleRolePrompt();
   setupGoogleSignIn();
 }
 
@@ -118,6 +119,9 @@ async function handleRegister(event) {
 // reports a client id, and only the first time the auth view is shown.
 let googleClientId = null;
 let googleReady = false;
+// Holds the Google credential between the first "needs a role" reply and the
+// user picking one, so the second request can re-send the same token.
+let pendingGoogleToken = null;
 
 async function loadAuthConfig() {
   try {
@@ -168,10 +172,36 @@ async function handleGoogleCredential(response) {
     const data = await api.post("/api/auth/google", {
       id_token: response.credential,
     });
+    if (data && data.needs_role) {
+      // First sign-in for a new account: ask trainee or coach, then retry.
+      pendingGoogleToken = response.credential;
+      document.getElementById("google-signin").classList.add("hidden");
+      document.getElementById("google-role").classList.remove("hidden");
+      return;
+    }
     onAuthSuccess(data);
   } catch (err) {
     showToast(err.detail || err.title || "Google sign-in failed", true);
   }
+}
+
+async function submitGoogleRole(role) {
+  try {
+    const data = await api.post("/api/auth/google", {
+      id_token: pendingGoogleToken,
+      role: role,
+    });
+    resetGoogleRolePrompt();
+    onAuthSuccess(data);
+  } catch (err) {
+    showToast(err.detail || err.title || "Google sign-in failed", true);
+  }
+}
+
+function resetGoogleRolePrompt() {
+  pendingGoogleToken = null;
+  document.getElementById("google-role").classList.add("hidden");
+  document.getElementById("google-signin").classList.toggle("hidden", !googleReady);
 }
 
 // --- coach: exercises -------------------------------------------
@@ -1557,6 +1587,9 @@ async function start() {
   document
     .getElementById("logout-btn")
     .addEventListener("click", logout);
+  document.querySelectorAll("#google-role .role-choice button").forEach((btn) => {
+    btn.addEventListener("click", () => submitGoogleRole(btn.dataset.role));
+  });
 
   document.querySelectorAll("#coach-view .dash-tab").forEach((tab) => {
     tab.addEventListener("click", () => selectCoachPanel(tab.dataset.panel));
