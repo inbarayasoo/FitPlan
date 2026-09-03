@@ -97,6 +97,7 @@ void SessionService::write_sets(std::int64_t session_id, const std::vector<Sessi
         row.weight = s.weight;
         row.rpe = s.rpe;
         row.completed = s.completed;
+        row.notes = s.notes;
         session_sets_.create(row);
     }
 }
@@ -112,7 +113,6 @@ SessionWithSets SessionService::log_session(std::int64_t trainee_id, const Sessi
     header.plan_id = in.plan_id;
     header.performed_at = in.performed_at.value_or("");
     header.status = in.status;
-    header.notes = in.notes;
     const models::WorkoutSession saved = sessions_.create(header);
 
     write_sets(saved.id, in.sets);
@@ -143,9 +143,6 @@ SessionWithSets SessionService::update_session(std::int64_t trainee_id, std::int
     if (patch.status) {
         check_status(*patch.status);
         session.status = *patch.status;
-    }
-    if (patch.set_notes) {
-        session.notes = patch.notes;
     }
     if (patch.set_sets) {
         validate_sets(trainee_id, patch.sets);

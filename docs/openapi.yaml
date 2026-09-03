@@ -554,9 +554,9 @@ paths:
       summary: Update a logged session
       operationId: patchMySessionsById
       description: >
-        Any subset of `status`, `notes`, and `sets` may be sent. Omitting a
-        field leaves it unchanged. Sending `sets` replaces the whole set list.
-        Sending `notes: null` clears the note.
+        Either of `status` and `sets` may be sent. Omitting a field leaves it
+        unchanged. Sending `sets` replaces the whole set list; each set carries
+        its own `notes`.
       requestBody:
         required: true
         content:
@@ -612,6 +612,30 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ProgressReport" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/trainees/{id}/sessions:
+    parameters:
+      - $ref: "#/components/parameters/PathId"
+    get:
+      tags: [Sessions]
+      summary: A rostered trainee's logged sessions (coach view)
+      operationId: getTraineesByIdSessions
+      description: "Role: coach. The trainee must be on the calling coach's roster."
+      responses:
+        "200":
+          description: The same session list shape the trainee sees, newest first, each with its sets.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sessions]
+                properties:
+                  sessions:
+                    type: array
+                    items: { $ref: "#/components/schemas/Session" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -1019,6 +1043,10 @@ components:
         completed:
           type: boolean
           default: true
+        notes:
+          type: string
+          nullable: true
+          description: The trainee's free-text note for this set ("how did it feel").
 
     SessionSet:
       type: object
@@ -1035,6 +1063,10 @@ components:
         reps: { type: integer, nullable: true }
         weight: { type: number, nullable: true }
         rpe: { type: number, nullable: true }
+        notes:
+          type: string
+          nullable: true
+          description: The trainee's free-text note for this set ("how did it feel").
 
     SessionRequest:
       type: object
@@ -1052,7 +1084,6 @@ components:
         status:
           allOf: [{ $ref: "#/components/schemas/SessionStatus" }]
           default: completed
-        notes: { type: string, nullable: true }
         sets:
           type: array
           items: { $ref: "#/components/schemas/SessionSetInput" }
@@ -1062,13 +1093,9 @@ components:
       description: Every field is optional. Only the fields present are changed.
       properties:
         status: { $ref: "#/components/schemas/SessionStatus" }
-        notes:
-          type: string
-          nullable: true
-          description: A string to set the note, or null to clear it.
         sets:
           type: array
-          description: If present, replaces the entire set list.
+          description: If present, replaces the entire set list (each set carries its own note).
           items: { $ref: "#/components/schemas/SessionSetInput" }
 
     Session:
@@ -1079,7 +1106,6 @@ components:
         performed_at: { type: string }
         status: { $ref: "#/components/schemas/SessionStatus" }
         plan_id: { type: integer, format: int64, nullable: true }
-        notes: { type: string, nullable: true }
         sets:
           type: array
           items: { $ref: "#/components/schemas/SessionSet" }

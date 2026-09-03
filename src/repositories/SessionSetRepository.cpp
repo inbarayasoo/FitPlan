@@ -11,13 +11,13 @@ namespace {
 // exercise name, and both tables have an `id` column.
 constexpr const char* kSelectColumns =
     "ss.id, ss.session_id, ss.exercise_id, ss.plan_item_id, ss.set_number, "
-    "ss.reps, ss.weight, ss.rpe, ss.completed, e.name";
+    "ss.reps, ss.weight, ss.rpe, ss.completed, ss.notes, e.name";
 
 constexpr const char* kFromJoin = " FROM session_sets ss JOIN exercises e ON e.id = ss.exercise_id";
 
 // Column order must match kSelectColumns:
 //   0 id  1 session_id  2 exercise_id  3 plan_item_id  4 set_number  5 reps
-//   6 weight  7 rpe  8 completed  9 exercise name
+//   6 weight  7 rpe  8 completed  9 notes  10 exercise name
 models::SessionSet row_to_set(SQLite::Statement& stmt) {
     models::SessionSet s;
     s.id = stmt.getColumn(0).getInt64();
@@ -33,7 +33,9 @@ models::SessionSet row_to_set(SQLite::Statement& stmt) {
     if (!stmt.getColumn(7).isNull())
         s.rpe = stmt.getColumn(7).getDouble();
     s.completed = stmt.getColumn(8).getInt() != 0;
-    s.exercise_name = stmt.getColumn(9).getString();
+    if (!stmt.getColumn(9).isNull())
+        s.notes = stmt.getColumn(9).getString();
+    s.exercise_name = stmt.getColumn(10).getString();
     return s;
 }
 
@@ -52,8 +54,8 @@ models::SessionSet SessionSetRepository::create(const models::SessionSet& set) {
     SQLite::Statement stmt(db_,
                            "INSERT INTO session_sets "
                            "(session_id, exercise_id, plan_item_id, set_number, reps, weight, rpe, "
-                           " completed) "
-                           "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                           " completed, notes) "
+                           "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
     stmt.bind(1, set.session_id);
     stmt.bind(2, set.exercise_id);
     bind_optional(stmt, 3, set.plan_item_id);
@@ -62,6 +64,7 @@ models::SessionSet SessionSetRepository::create(const models::SessionSet& set) {
     bind_optional(stmt, 6, set.weight);
     bind_optional(stmt, 7, set.rpe);
     stmt.bind(8, set.completed ? 1 : 0);
+    bind_optional(stmt, 9, set.notes);
     stmt.exec();
 
     const std::int64_t new_id = db_.getLastInsertRowid();

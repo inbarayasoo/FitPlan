@@ -100,6 +100,7 @@ services::SessionSetInput parse_set(const json& obj) {
     s.weight = optional_double(obj, "weight");
     s.rpe = optional_double(obj, "rpe");
     s.completed = optional_bool(obj, "completed", true);
+    s.notes = optional_string(obj, "notes");
     return s;
 }
 
@@ -127,17 +128,20 @@ json set_to_json(const models::SessionSet& s) {
     put_optional(out, "reps", s.reps);
     put_optional(out, "weight", s.weight);
     put_optional(out, "rpe", s.rpe);
+    put_optional(out, "notes", s.notes);
     return out;
 }
 
 json session_to_json(const services::SessionWithSets& sws) {
     const models::WorkoutSession& h = sws.session;
     json out{
-        {"id", h.id},         {"trainee_id", h.trainee_id}, {"performed_at", h.performed_at},
-        {"status", h.status}, {"plan_id", nullptr},         {"notes", nullptr},
+        {"id", h.id},
+        {"trainee_id", h.trainee_id},
+        {"performed_at", h.performed_at},
+        {"status", h.status},
+        {"plan_id", nullptr},
     };
     put_optional(out, "plan_id", h.plan_id);
-    put_optional(out, "notes", h.notes);
 
     json sets = json::array();
     for (const models::SessionSet& s : sws.sets) {
@@ -158,7 +162,6 @@ services::SessionInput parse_session_request(const std::string& body) {
     if (const std::optional<std::string> status = optional_string(obj, "status")) {
         in.status = *status;
     }
-    in.notes = optional_string(obj, "notes");
 
     if (obj.contains("sets")) {
         if (!obj.at("sets").is_array()) {
@@ -176,15 +179,6 @@ services::SessionPatch parse_session_patch(const std::string& body) {
 
     services::SessionPatch patch;
     patch.status = optional_string(obj, "status");
-    if (obj.contains("notes")) {
-        patch.set_notes = true;
-        if (!obj.at("notes").is_null() && !obj.at("notes").is_string()) {
-            invalid("notes must be a string or null");
-        }
-        if (obj.at("notes").is_string() && !obj.at("notes").get<std::string>().empty()) {
-            patch.notes = obj.at("notes").get<std::string>();
-        }
-    }
     if (obj.contains("sets")) {
         if (!obj.at("sets").is_array()) {
             invalid("sets must be an array");

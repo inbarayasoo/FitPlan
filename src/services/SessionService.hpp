@@ -28,6 +28,7 @@ struct SessionSetInput {
     std::optional<double> weight;
     std::optional<double> rpe;
     bool completed = true;
+    std::optional<std::string> notes;  // the trainee's "how did it feel" note
 };
 
 // A whole logged workout as the trainee wants it stored: a header plus its sets.
@@ -35,17 +36,13 @@ struct SessionInput {
     std::optional<std::int64_t> plan_id;
     std::optional<std::string> performed_at;  // empty/absent => default to now
     std::string status = "completed";
-    std::optional<std::string> notes;
     std::vector<SessionSetInput> sets;
 };
 
-// A PATCH on a session: only the fields the caller sent. `set_notes` tells the
-// service the caller included "notes" (possibly null) versus omitted it.
-// `set_sets` likewise: when true, `sets` replaces the session's whole set list.
+// A PATCH on a session: only the fields the caller sent. `set_sets`: when true,
+// `sets` replaces the session's whole set list (each set carries its own note).
 struct SessionPatch {
     std::optional<std::string> status;
-    bool set_notes = false;
-    std::optional<std::string> notes;
     bool set_sets = false;
     std::vector<SessionSetInput> sets;
 };

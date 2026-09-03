@@ -138,11 +138,13 @@ echo "== trainee: plan, session, progress =="
 assert "GET  /api/my/plan" 200 "$(req "$B" "${autht[@]}" "${BASE}/api/my/plan")"
 assert "POST /api/my/sessions" 201 "$(req "$B" "${autht[@]}" "${json[@]}" \
     -X POST "${BASE}/api/my/sessions" \
-    -d "{\"plan_id\":${PLAN},\"sets\":[{\"exercise_id\":${EX},\"plan_item_id\":${PI1},\"reps\":5,\"weight\":100},{\"exercise_id\":${EX},\"plan_item_id\":${PI1},\"reps\":5,\"weight\":100},{\"exercise_id\":${EX},\"plan_item_id\":${PI1},\"reps\":5,\"weight\":100}]}")"
+    -d "{\"plan_id\":${PLAN},\"sets\":[{\"exercise_id\":${EX},\"plan_item_id\":${PI1},\"reps\":5,\"weight\":100,\"notes\":\"felt ok\"},{\"exercise_id\":${EX},\"plan_item_id\":${PI1},\"reps\":5,\"weight\":100},{\"exercise_id\":${EX},\"plan_item_id\":${PI1},\"reps\":5,\"weight\":100}]}")"
 assert "GET  /api/my/sessions" 200 "$(req "$B" "${autht[@]}" "${BASE}/api/my/sessions")"
 assert "GET  /api/my/progress" 200 "$(req "$B" "${autht[@]}" "${BASE}/api/my/progress")"
 assert "GET  /api/trainees/<id>/progress" 200 "$(req "$B" "${authc[@]}" \
     "${BASE}/api/trainees/${TID}/progress")"
+assert "GET  /api/trainees/<id>/sessions" 200 "$(req "$B" "${authc[@]}" \
+    "${BASE}/api/trainees/${TID}/sessions")"
 
 echo "== authorization & validation =="
 assert "trainee hits a coach route -> 403" 403 "$(req "$B" "${autht[@]}" "${BASE}/api/exercises")"

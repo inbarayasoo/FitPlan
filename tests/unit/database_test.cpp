@@ -34,7 +34,7 @@ TEST_F(DatabaseTest, AppliesEveryMigration) {
     Database db(path(), migrations_dir());
 
     // Bump this each time a migration file is added under src/db/migrations.
-    EXPECT_EQ(db.schema_version(), 5);
+    EXPECT_EQ(db.schema_version(), 6);
 
     SQLite::Statement tables(
         db.connection(),
@@ -71,6 +71,20 @@ TEST_F(DatabaseTest, AppliesEveryMigration) {
         "SELECT count(*) FROM pragma_table_info('users') WHERE name = 'email_verified'");
     ASSERT_TRUE(ev.executeStep());
     EXPECT_EQ(ev.getColumn(0).getInt(), 1);
+
+    // Migration 006 moved the free-text note off the session and onto each set:
+    // session_sets gained `notes`, workout_sessions lost it.
+    SQLite::Statement set_notes(
+        db.connection(),
+        "SELECT count(*) FROM pragma_table_info('session_sets') WHERE name = 'notes'");
+    ASSERT_TRUE(set_notes.executeStep());
+    EXPECT_EQ(set_notes.getColumn(0).getInt(), 1);
+
+    SQLite::Statement session_notes(
+        db.connection(),
+        "SELECT count(*) FROM pragma_table_info('workout_sessions') WHERE name = 'notes'");
+    ASSERT_TRUE(session_notes.executeStep());
+    EXPECT_EQ(session_notes.getColumn(0).getInt(), 0);
 }
 
 TEST_F(DatabaseTest, EnablesForeignKeyEnforcement) {
@@ -89,7 +103,7 @@ TEST_F(DatabaseTest, IsIdempotentAcrossRestarts) {
     // "duplicate column").
     EXPECT_NO_THROW({
         Database second(path(), migrations_dir());
-        EXPECT_EQ(second.schema_version(), 5);
+        EXPECT_EQ(second.schema_version(), 6);
     });
 }
 
@@ -120,8 +134,9 @@ TEST_F(DatabaseTest, Migration004RebuildPreservesRowsAndForeignKeys) {
     for (const auto& entry : fs::directory_iterator(migrations_dir())) {
         const std::string name = entry.path().filename().string();
         // Everything up to and including 003; 004 is the rebuild under test and
-        // 005 builds on top of it.
-        if (name.rfind("004_", 0) != 0 && name.rfind("005_", 0) != 0) {
+        // 005 / 006 build on top of it.
+        if (name.rfind("004_", 0) != 0 && name.rfind("005_", 0) != 0 &&
+            name.rfind("006_", 0) != 0) {
             fs::copy_file(entry.path(), v3_dir / name);
         }
     }
@@ -136,7 +151,7 @@ TEST_F(DatabaseTest, Migration004RebuildPreservesRowsAndForeignKeys) {
     }
 
     Database upgraded(path(), migrations_dir());
-    EXPECT_EQ(upgraded.schema_version(), 5);
+    EXPECT_EQ(upgraded.schema_version(), 6);
 
     SQLite::Statement user(
         upgraded.connection(),

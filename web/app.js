@@ -31,6 +31,8 @@ function selectCoachPanel(name) {
     loadExercises();
   } else if (name === "trainees") {
     loadTrainees();
+  } else if (name === "trainee-log") {
+    loadTraineeLog();
   } else if (name === "plans") {
     loadPlansPanel();
   }
@@ -478,6 +480,135 @@ async function handleTraineeRemove(item) {
   } catch (err) {
     showToast(err.detail || err.title || "Could not remove trainee", true);
   }
+}
+
+// --- coach: trainee log (read-only view of one trainee's sessions) -----
+// The coach picks a roster trainee; we fetch that trainee's logged sessions
+// from GET /api/trainees/<id>/sessions and show them read-only (no edit /
+// delete - those stay on the trainee's own dashboard).
+async function loadTraineeLog() {
+  const panel = document.getElementById("panel-trainee-log");
+  panel.textContent = "";
+
+  let trainees;
+  try {
+    trainees = (await api.get("/api/trainees")).trainees;
+  } catch (err) {
+    showToast(err.detail || err.title || "Could not load trainees", true);
+    return;
+  }
+
+  if (trainees.length === 0) {
+    const note = document.createElement("p");
+    note.className = "panel-placeholder";
+    note.textContent = "Add a trainee to your roster to see their log.";
+    panel.appendChild(note);
+    return;
+  }
+
+  const field = document.createElement("div");
+  field.className = "stack-form";
+  const label = document.createElement("label");
+  label.textContent = "Trainee";
+  const select = document.createElement("select");
+  select.id = "trainee-log-select";
+  trainees.forEach((trainee) => {
+    const option = document.createElement("option");
+    option.value = String(trainee.id);
+    option.textContent = trainee.display_name + "   ·   " + trainee.email;
+    select.appendChild(option);
+  });
+  label.appendChild(select);
+  field.appendChild(label);
+  panel.appendChild(field);
+
+  const list = document.createElement("ul");
+  list.id = "trainee-log-sessions";
+  list.className = "item-list";
+  panel.appendChild(list);
+
+  select.addEventListener("change", () => renderTraineeLog(select.value));
+  renderTraineeLog(select.value);
+}
+
+async function renderTraineeLog(traineeId) {
+  const list = document.getElementById("trainee-log-sessions");
+  list.textContent = "";
+
+  let sessions;
+  try {
+    sessions = (await api.get("/api/trainees/" + traineeId + "/sessions"))
+      .sessions;
+  } catch (err) {
+    showToast(err.detail || err.title || "Could not load the trainee's log", true);
+    return;
+  }
+
+  if (sessions.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "item-empty";
+    empty.textContent = "This trainee has not logged any sessions yet.";
+    list.appendChild(empty);
+    return;
+  }
+
+  sessions.forEach((session) => {
+    const li = document.createElement("li");
+    li.className = "item session-row";
+
+    const main = document.createElement("div");
+    main.className = "session-row-main";
+
+    const when = document.createElement("span");
+    when.className = "item-title";
+    when.textContent = (session.performed_at || "").slice(0, 10) || "—";
+    main.appendChild(when);
+
+    const meta = document.createElement("span");
+    meta.className = "item-sub";
+    meta.textContent =
+      session.status + "   ·   " + session.sets.length + " sets";
+    main.appendChild(meta);
+
+    const actions = document.createElement("span");
+    actions.className = "item-actions";
+
+    const detail = document.createElement("ul");
+    detail.className = "session-detail hidden";
+    session.sets.forEach((set) => {
+      const line = document.createElement("li");
+      const bits = [set.exercise_name];
+      if (set.reps != null && set.weight != null) {
+        bits.push(set.reps + " × " + set.weight);
+      } else if (set.reps != null) {
+        bits.push(set.reps + " reps");
+      }
+      if (set.rpe != null) bits.push("RPE " + set.rpe);
+      if (!set.completed) bits.push("skipped");
+      line.textContent = "Set " + set.set_number + ":  " + bits.join("   ·   ");
+      if (set.notes) {
+        const setNote = document.createElement("div");
+        setNote.className = "set-note-text";
+        setNote.textContent = "“" + set.notes + "”";
+        line.appendChild(setNote);
+      }
+      detail.appendChild(line);
+    });
+
+    const detailsBtn = document.createElement("button");
+    detailsBtn.type = "button";
+    detailsBtn.className = "ghost";
+    detailsBtn.textContent = "Details";
+    detailsBtn.addEventListener("click", () =>
+      detail.classList.toggle("hidden")
+    );
+    actions.appendChild(detailsBtn);
+
+    main.appendChild(actions);
+    li.appendChild(main);
+    li.appendChild(detail);
+    list.appendChild(li);
+  });
 }
 
 async function handleTraineeSubmit(event) {
@@ -1135,6 +1266,14 @@ function makeSetRow(source) {
   remove.addEventListener("click", () => row.remove());
   row.appendChild(remove);
 
+  const note = document.createElement("input");
+  note.type = "text";
+  note.className = "set-note";
+  note.placeholder = "How did this set feel? (optional)";
+  note.maxLength = 300;
+  if (source.notes != null) note.value = source.notes;
+  row.appendChild(note);
+
   return row;
 }
 
@@ -1238,9 +1377,11 @@ function readSessionSets() {
     const reps = row.querySelector(".set-reps").value;
     const weight = row.querySelector(".set-weight").value;
     const rpe = row.querySelector(".set-rpe").value;
+    const note = row.querySelector(".set-note").value.trim();
     if (reps) set.reps = Number(reps);
     if (weight) set.weight = Number(weight);
     if (rpe) set.rpe = Number(rpe);
+    if (note) set.notes = note;
     sets.push(set);
   });
   return sets;
@@ -1257,19 +1398,16 @@ async function handleSessionSubmit(event) {
   }
 
   const status = form.elements.status.value;
-  const notes = form.elements.notes.value.trim();
 
   try {
     if (editingSessionId) {
       await api.patch("/api/my/sessions/" + editingSessionId, {
         status: status,
-        notes: notes || null,
         sets: sets,
       });
       showToast("Session updated");
     } else {
       const payload = { plan_id: logPlan.id, status: status, sets: sets };
-      if (notes) payload.notes = notes;
       const performedOn = form.elements.performed_on.value;  // "YYYY-MM-DD" or ""
       if (performedOn) payload.performed_at = performedOn + " 12:00:00";
       await api.post("/api/my/sessions", payload);
@@ -1284,7 +1422,6 @@ async function handleSessionSubmit(event) {
 function startSessionEdit(session) {
   const form = document.getElementById("session-form");
   form.elements.status.value = session.status;
-  form.elements.notes.value = session.notes || "";
   form.elements.performed_on.value = (session.performed_at || "").slice(0, 10);
 
   document.getElementById("session-day-field").classList.add("hidden");
@@ -1363,6 +1500,12 @@ async function loadSessionHistory() {
         if (set.rpe != null) bits.push("RPE " + set.rpe);
         if (!set.completed) bits.push("skipped");
         line.textContent = "Set " + set.set_number + ":  " + bits.join("   ·   ");
+        if (set.notes) {
+          const setNote = document.createElement("div");
+          setNote.className = "set-note-text";
+          setNote.textContent = "“" + set.notes + "”";
+          line.appendChild(setNote);
+        }
         detail.appendChild(line);
       });
 

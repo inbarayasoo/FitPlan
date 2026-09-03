@@ -15,8 +15,8 @@ namespace fitplan::dto {
 // (status value, exercise exists, plan-item link) belong to SessionService.
 services::SessionInput parse_session_request(const std::string& body);
 
-// Parse the body of PATCH /api/my/sessions/{id}. Only the keys present are set;
-// including "notes": null clears the note, omitting it leaves the note alone.
+// Parse the body of PATCH /api/my/sessions/{id}. Only the keys present are set.
+// Sending "sets" replaces the whole set list (each set carries its own note).
 services::SessionPatch parse_session_patch(const std::string& body);
 
 // One session with its sets as JSON.

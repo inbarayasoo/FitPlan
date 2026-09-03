@@ -21,6 +21,9 @@ struct SessionSet {
     std::optional<double> weight;
     std::optional<double> rpe;
     bool completed = true;
+    // The trainee's free-text note for this one set ("felt strong", "left
+    // shoulder tight"). std::nullopt when they left it blank.
+    std::optional<std::string> notes;
 };
 
 }  // namespace fitplan::models

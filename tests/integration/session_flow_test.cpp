@@ -52,7 +52,7 @@ protected:
         fitplan::controllers::register_exercise_routes(app_, exercises_);
         fitplan::controllers::register_plan_routes(app_, plans_);
         fitplan::controllers::register_trainee_routes(app_, users_, roster_);
-        fitplan::controllers::register_session_routes(app_, session_svc_);
+        fitplan::controllers::register_session_routes(app_, session_svc_, roster_);
         fitplan::controllers::register_progress_routes(app_, session_svc_, roster_, exercises_);
         app_.bindaddr("127.0.0.1").port(0);
         server_ = std::thread([this] { app_.run(); });
@@ -136,7 +136,7 @@ protected:
                R"("sets":[)"
                R"({"exercise_id":)" +
                std::to_string(ex1_) + R"(,"plan_item_id":)" + std::to_string(item1_) +
-               R"(,"reps":5,"weight":100},)"
+               R"(,"reps":5,"weight":100,"notes":"first set felt strong"},)"
                R"({"exercise_id":)" +
                std::to_string(ex1_) + R"(,"plan_item_id":)" + std::to_string(item1_) +
                R"(,"reps":5,"weight":100},)"
@@ -195,6 +195,8 @@ TEST_F(SessionFlowTest, LogListPatchAndDeleteASession) {
     ASSERT_EQ(logged.status, 201) << logged.body;
     EXPECT_NE(logged.body.find(R"("set_number":5)"), std::string::npos);
     EXPECT_NE(logged.body.find(R"("exercise_name":)"), std::string::npos);
+    // the per-set note round-trips; there is no session-level note any more
+    EXPECT_NE(logged.body.find(R"("notes":"first set felt strong")"), std::string::npos);
     const long long sid = json_number(logged.body, "id");
 
     auto list = req("GET", "/api/my/sessions", "", trainee_);
@@ -202,19 +204,22 @@ TEST_F(SessionFlowTest, LogListPatchAndDeleteASession) {
     EXPECT_NE(list.body.find(R"("status":"completed")"), std::string::npos);
 
     auto patched = req("PATCH", "/api/my/sessions/" + std::to_string(sid),
-                       R"({"status":"in_progress","notes":"hard"})", trainee_);
+                       R"({"status":"in_progress"})", trainee_);
     ASSERT_EQ(patched.status, 200) << patched.body;
     EXPECT_NE(patched.body.find(R"("status":"in_progress")"), std::string::npos);
-    EXPECT_NE(patched.body.find(R"("notes":"hard")"), std::string::npos);
 
-    // PATCH can also replace the whole set list; numbering restarts at 1.
+    // PATCH can also replace the whole set list; numbering restarts at 1 and
+    // each replacement set carries its own note.
     auto reset = req("PATCH", "/api/my/sessions/" + std::to_string(sid),
                      R"({"sets":[{"exercise_id":)" + std::to_string(ex1_) + R"(,"plan_item_id":)" +
-                         std::to_string(item1_) + R"(,"reps":3,"weight":120}]})",
+                         std::to_string(item1_) +
+                         R"(,"reps":3,"weight":120,"notes":"heavy triple"}]})",
                      trainee_);
     ASSERT_EQ(reset.status, 200) << reset.body;
     EXPECT_NE(reset.body.find(R"("reps":3)"), std::string::npos);
+    EXPECT_NE(reset.body.find(R"("notes":"heavy triple")"), std::string::npos);
     EXPECT_EQ(reset.body.find(R"("set_number":5)"), std::string::npos);
+    EXPECT_EQ(reset.body.find(R"("notes":"first set felt strong")"), std::string::npos);
 
     // a replacement set pointing off the active plan is rejected
     EXPECT_EQ(
@@ -265,6 +270,23 @@ TEST_F(SessionFlowTest, CoachSeesRosterTraineeProgressButNotOthers) {
         404);  // not on the coach's roster
 }
 
+TEST_F(SessionFlowTest, CoachSeesRosterTraineeSessionLogButNotOthers) {
+    ASSERT_EQ(req("POST", "/api/my/sessions", log_body_last_week(), trainee_).status, 201);
+
+    auto ok = req("GET", "/api/trainees/" + std::to_string(trainee_id_) + "/sessions", "", coach_);
+    ASSERT_EQ(ok.status, 200) << ok.body;
+    EXPECT_NE(ok.body.find(R"("status":"completed")"), std::string::npos);
+    EXPECT_NE(ok.body.find(R"("exercise_name":"Squat")"), std::string::npos);
+    EXPECT_NE(ok.body.find(R"("set_number":5)"), std::string::npos);
+    // the coach sees the trainee's per-set note
+    EXPECT_NE(ok.body.find(R"("notes":"first set felt strong")"), std::string::npos);
+
+    const long long other_id = user_id(other_);
+    EXPECT_EQ(
+        req("GET", "/api/trainees/" + std::to_string(other_id) + "/sessions", "", coach_).status,
+        404);  // not on the coach's roster
+}
+
 TEST_F(SessionFlowTest, ValidationAndRoleMatrix) {
     // unknown exercise in a set
     EXPECT_EQ(
@@ -287,7 +309,14 @@ TEST_F(SessionFlowTest, ValidationAndRoleMatrix) {
     EXPECT_EQ(req("GET", "/api/trainees/" + std::to_string(trainee_id_) + "/progress", "", trainee_)
                   .status,
               403);
+    EXPECT_EQ(req("GET", "/api/trainees/" + std::to_string(trainee_id_) + "/sessions", "", trainee_)
+                  .status,
+              403);
     EXPECT_EQ(http_request(port_, "GET", "/api/my/sessions", "").status, 401);
+    EXPECT_EQ(http_request(port_, "GET",
+                           "/api/trainees/" + std::to_string(trainee_id_) + "/sessions", "")
+                  .status,
+              401);
 }
 
 }  // namespace

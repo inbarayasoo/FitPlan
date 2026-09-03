@@ -52,21 +52,22 @@ INSERT INTO plan_items
     (6, 1, 6, 2, 'B', 3, 8,   0.0, 120, 'Bodyweight; add a band if needed.');
 
 -- ----- two logged sessions (day A), two weeks apart ------------------
-INSERT INTO workout_sessions (id, trainee_id, plan_id, performed_at, status, notes) VALUES
-    (1, 2, 1, datetime('now', '-14 days'), 'completed', 'Felt strong.'),
-    (2, 2, 1, datetime('now', '-7 days'),  'completed', NULL);
+INSERT INTO workout_sessions (id, trainee_id, plan_id, performed_at, status) VALUES
+    (1, 2, 1, datetime('now', '-14 days'), 'completed'),
+    (2, 2, 1, datetime('now', '-7 days'),  'completed');
 
+-- per-set notes: the trainee's "how did it feel" line, left mostly NULL
 INSERT INTO session_sets
-    (session_id, exercise_id, plan_item_id, set_number, reps, weight, rpe, completed) VALUES
-    (1, 1, 1, 1, 5, 80.0, 7.0, 1),
-    (1, 1, 1, 2, 5, 80.0, 7.5, 1),
-    (1, 1, 1, 3, 5, 80.0, 8.0, 1),
-    (1, 2, 2, 1, 5, 60.0, 7.0, 1),
-    (1, 2, 2, 2, 5, 60.0, 7.5, 1),
-    (1, 2, 2, 3, 4, 60.0, 9.0, 1),
-    (2, 1, 1, 1, 5, 82.5, 7.5, 1),
-    (2, 1, 1, 2, 5, 82.5, 8.0, 1),
-    (2, 1, 1, 3, 5, 82.5, 8.5, 1),
-    (2, 2, 2, 1, 5, 62.5, 7.5, 1),
-    (2, 2, 2, 2, 5, 62.5, 8.0, 1),
-    (2, 2, 2, 3, 5, 62.5, 8.5, 1);
+    (session_id, exercise_id, plan_item_id, set_number, reps, weight, rpe, completed, notes) VALUES
+    (1, 1, 1, 1, 5, 80.0, 7.0, 1, 'Felt strong off the floor.'),
+    (1, 1, 1, 2, 5, 80.0, 7.5, 1, NULL),
+    (1, 1, 1, 3, 5, 80.0, 8.0, 1, NULL),
+    (1, 2, 2, 1, 5, 60.0, 7.0, 1, NULL),
+    (1, 2, 2, 2, 5, 60.0, 7.5, 1, NULL),
+    (1, 2, 2, 3, 4, 60.0, 9.0, 1, 'Last rep grindy; stopped a rep short.'),
+    (2, 1, 1, 1, 5, 82.5, 7.5, 1, NULL),
+    (2, 1, 1, 2, 5, 82.5, 8.0, 1, NULL),
+    (2, 1, 1, 3, 5, 82.5, 8.5, 1, NULL),
+    (2, 2, 2, 1, 5, 62.5, 7.5, 1, NULL),
+    (2, 2, 2, 2, 5, 62.5, 8.0, 1, NULL),
+    (2, 2, 2, 3, 5, 62.5, 8.5, 1, NULL);

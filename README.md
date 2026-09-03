@@ -11,6 +11,23 @@ weekly streak).
 One process, one SQLite file, no external services. A small vanilla-JS frontend
 is served by the same server.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/01-login.jpg" alt="Sign-in screen"></td>
+    <td><img src="docs/screenshots/04-trainee-my-plan.jpg" alt="Trainee: assigned plan grouped by day"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/05-trainee-log-session.jpg" alt="Trainee: logging a session, one note per set"></td>
+    <td><img src="docs/screenshots/06-trainee-progress.jpg" alt="Trainee: volume, adherence, weekly streak, e1RM"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/02-coach-plans.jpg" alt="Coach: plan builder and plan list"></td>
+    <td><img src="docs/screenshots/03-coach-trainee-log.jpg" alt="Coach: a rostered trainee's session log"></td>
+  </tr>
+</table>
+
 ## Run
 
 ```bash

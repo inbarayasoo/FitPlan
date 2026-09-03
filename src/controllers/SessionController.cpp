@@ -13,7 +13,8 @@
 
 namespace fitplan::controllers {
 
-void register_session_routes(app::FitPlanApp& app, services::SessionService& sessions) {
+void register_session_routes(app::FitPlanApp& app, services::SessionService& sessions,
+                             repositories::CoachTraineeRepository& roster) {
     // GET /api/my/plan -----------------------------------------------------
     CROW_ROUTE(app, "/api/my/plan")
     ([&app, &sessions](const crow::request& req) {
@@ -79,6 +80,26 @@ void register_session_routes(app::FitPlanApp& app, services::SessionService& ses
                 return http::problem_response_for(ex);
             }
         });
+
+    // GET /api/trainees/<int>/sessions ---------------------------------------
+    // A coach's read-only window onto one trainee's log. Same roster gate as
+    // GET /api/trainees/<int>/progress: a coach may only read a trainee who is
+    // on their roster; to anyone else that trainee looks like a 404.
+    CROW_ROUTE(app, "/api/trainees/<int>/sessions")
+    ([&app, &sessions, &roster](const crow::request& req, int trainee_id) {
+        try {
+            const auto& ctx = app.template get_context<middleware::JwtAuthMiddleware>(req);
+            const util::TokenClaims claims = http::require_role(ctx, "coach");
+
+            if (!roster.is_linked(claims.user_id, trainee_id)) {
+                throw http::ApiError(http::ApiErrorKind::kNotFound,
+                                     "that trainee is not on your roster");
+            }
+            return dto::session_list_response(sessions.list_sessions(trainee_id));
+        } catch (const std::exception& ex) {
+            return http::problem_response_for(ex);
+        }
+    });
 }
 
 }  // namespace fitplan::controllers

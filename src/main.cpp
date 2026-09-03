@@ -184,7 +184,7 @@ int main(int argc, char** argv) {
     fitplan::controllers::register_exercise_routes(app, exercises);
     fitplan::controllers::register_plan_routes(app, plan_service);
     fitplan::controllers::register_trainee_routes(app, users, roster);
-    fitplan::controllers::register_session_routes(app, session_service);
+    fitplan::controllers::register_session_routes(app, session_service, roster);
     fitplan::controllers::register_progress_routes(app, session_service, roster, exercises);
     fitplan::controllers::register_exercise_note_routes(app, exercise_notes, plans_repo,
                                                         plan_items);

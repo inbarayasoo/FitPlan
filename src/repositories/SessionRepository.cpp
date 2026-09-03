@@ -6,10 +6,10 @@ namespace fitplan::repositories {
 
 namespace {
 
-constexpr const char* kSelectColumns = "id, trainee_id, plan_id, performed_at, status, notes";
+constexpr const char* kSelectColumns = "id, trainee_id, plan_id, performed_at, status";
 
 // Column order must match kSelectColumns:
-//   0 id  1 trainee_id  2 plan_id  3 performed_at  4 status  5 notes
+//   0 id  1 trainee_id  2 plan_id  3 performed_at  4 status
 models::WorkoutSession row_to_session(SQLite::Statement& stmt) {
     models::WorkoutSession s;
     s.id = stmt.getColumn(0).getInt64();
@@ -18,17 +18,7 @@ models::WorkoutSession row_to_session(SQLite::Statement& stmt) {
         s.plan_id = stmt.getColumn(2).getInt64();
     s.performed_at = stmt.getColumn(3).getString();
     s.status = stmt.getColumn(4).getString();
-    if (!stmt.getColumn(5).isNull())
-        s.notes = stmt.getColumn(5).getString();
     return s;
-}
-
-void bind_optional(SQLite::Statement& stmt, int index, const std::optional<std::string>& value) {
-    if (value.has_value()) {
-        stmt.bind(index, *value);
-    } else {
-        stmt.bind(index);
-    }
 }
 
 void bind_optional_id(SQLite::Statement& stmt, int index,
@@ -47,23 +37,21 @@ models::WorkoutSession SessionRepository::create(const models::WorkoutSession& s
     // one, so the table default (datetime('now')) applies.
     if (s.performed_at.empty()) {
         SQLite::Statement stmt(db_,
-                               "INSERT INTO workout_sessions (trainee_id, plan_id, status, notes) "
-                               "VALUES (?, ?, ?, ?)");
+                               "INSERT INTO workout_sessions (trainee_id, plan_id, status) "
+                               "VALUES (?, ?, ?)");
         stmt.bind(1, s.trainee_id);
         bind_optional_id(stmt, 2, s.plan_id);
         stmt.bind(3, s.status);
-        bind_optional(stmt, 4, s.notes);
         stmt.exec();
     } else {
         SQLite::Statement stmt(db_,
                                "INSERT INTO workout_sessions "
-                               "(trainee_id, plan_id, performed_at, status, notes) "
-                               "VALUES (?, ?, ?, ?, ?)");
+                               "(trainee_id, plan_id, performed_at, status) "
+                               "VALUES (?, ?, ?, ?)");
         stmt.bind(1, s.trainee_id);
         bind_optional_id(stmt, 2, s.plan_id);
         stmt.bind(3, s.performed_at);
         stmt.bind(4, s.status);
-        bind_optional(stmt, 5, s.notes);
         stmt.exec();
     }
     return find_by_id(db_.getLastInsertRowid()).value();
@@ -93,10 +81,9 @@ std::vector<models::WorkoutSession> SessionRepository::list_by_trainee(std::int6
 }
 
 bool SessionRepository::update(const models::WorkoutSession& s) {
-    SQLite::Statement stmt(db_, "UPDATE workout_sessions SET status = ?, notes = ? WHERE id = ?");
+    SQLite::Statement stmt(db_, "UPDATE workout_sessions SET status = ? WHERE id = ?");
     stmt.bind(1, s.status);
-    bind_optional(stmt, 2, s.notes);
-    stmt.bind(3, s.id);
+    stmt.bind(2, s.id);
     return stmt.exec() > 0;
 }
 

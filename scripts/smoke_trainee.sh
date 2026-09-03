@@ -80,7 +80,7 @@ LW=$(date -u -d '-7 days' '+%Y-%m-%d 09:00:00')
 code "${autht[@]}" "${json[@]}" -X POST "${BASE}/api/my/sessions" -d "{
   \"plan_id\": ${PLAN}, \"performed_at\": \"${LW}\",
   \"sets\": [
-    {\"exercise_id\": ${EX1}, \"plan_item_id\": ${PI1}, \"reps\": 5, \"weight\": 100, \"rpe\": 8},
+    {\"exercise_id\": ${EX1}, \"plan_item_id\": ${PI1}, \"reps\": 5, \"weight\": 100, \"rpe\": 8, \"notes\": \"strong off the floor\"},
     {\"exercise_id\": ${EX1}, \"plan_item_id\": ${PI1}, \"reps\": 5, \"weight\": 100},
     {\"exercise_id\": ${EX1}, \"plan_item_id\": ${PI1}, \"reps\": 5, \"weight\": 100},
     {\"exercise_id\": ${EX2}, \"plan_item_id\": ${PI2}, \"reps\": 8, \"weight\": 60},
@@ -100,9 +100,9 @@ echo "== trainee lists sessions =="
 curl -s "${autht[@]}" "${BASE}/api/my/sessions"; echo
 SID=$(curl -s "${autht[@]}" "${BASE}/api/my/sessions" | grep -o '"id":[0-9]\+' | head -1 | grep -o '[0-9]\+')
 
-echo "== trainee PATCHes session ${SID}: status + notes -> 200 =="
+echo "== trainee PATCHes session ${SID}: status -> 200 =="
 curl -s -w '\nstatus %{http_code}\n' "${autht[@]}" "${json[@]}" -X PATCH \
-  "${BASE}/api/my/sessions/${SID}" -d '{"status":"in_progress","notes":"tough day"}'
+  "${BASE}/api/my/sessions/${SID}" -d '{"status":"in_progress"}'
 
 echo
 echo "== trainee GET /api/my/progress =="
@@ -110,6 +110,9 @@ curl -s "${autht[@]}" "${BASE}/api/my/progress"; echo
 
 echo "== coach GET /api/trainees/${TID}/progress (roster-scoped) =="
 curl -s "${authc[@]}" "${BASE}/api/trainees/${TID}/progress"; echo
+
+echo "== coach GET /api/trainees/${TID}/sessions (roster-scoped log, per-set notes) =="
+curl -s "${authc[@]}" "${BASE}/api/trainees/${TID}/sessions"; echo
 
 echo
 echo "== authz: another trainee cannot see this trainee's coach view -> 403 =="

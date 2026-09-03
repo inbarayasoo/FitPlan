@@ -45,7 +45,6 @@ protected:
         s.trainee_id = trainee_id_;
         s.plan_id = 1;
         s.status = "completed";
-        s.notes = "felt good";
         return s;
     }
 
@@ -88,16 +87,14 @@ TEST_F(SessionRepositoryTest, ListByTraineeIsNewestFirst) {
     EXPECT_EQ(list[1].performed_at, "2026-08-01 08:00:00");
 }
 
-TEST_F(SessionRepositoryTest, UpdateChangesStatusAndNotesOnly) {
+TEST_F(SessionRepositoryTest, UpdateChangesStatusOnly) {
     WorkoutSession saved = sessions_.create(sample());
     saved.status = "in_progress";
-    saved.notes = std::nullopt;
 
     EXPECT_TRUE(sessions_.update(saved));
     const auto reloaded = sessions_.find_by_id(saved.id);
     ASSERT_TRUE(reloaded.has_value());
     EXPECT_EQ(reloaded->status, "in_progress");
-    EXPECT_FALSE(reloaded->notes.has_value());
 }
 
 TEST_F(SessionRepositoryTest, SessionSetsRoundTripAndDeleteBySession) {
@@ -111,12 +108,15 @@ TEST_F(SessionRepositoryTest, SessionSetsRoundTripAndDeleteBySession) {
     set.reps = 5;
     set.weight = 80.0;
     set.rpe = 7.5;
+    set.notes = "left knee a bit tight";
     const SessionSet saved = sets_.create(set);
 
     EXPECT_GT(saved.id, 0);
     ASSERT_TRUE(saved.reps.has_value());
     EXPECT_EQ(*saved.reps, 5);
     EXPECT_TRUE(saved.completed);  // column default 1
+    ASSERT_TRUE(saved.notes.has_value());
+    EXPECT_EQ(*saved.notes, "left knee a bit tight");
 
     set.set_number = 2;
     sets_.create(set);

@@ -1,19 +1,20 @@
 /* FitPlan front-end styles. Plain CSS, no framework, no build step.
-   Dark theme: near-black ground, white text, transparent surfaces. */
+   Turquoise ground, white body text, light-pink headings, translucent surfaces. */
 
 :root {
-  --bg:            #0a0a0b;
-  --bg-raised:     #0f0f11;
-  --surface:       rgba(255, 255, 255, 0.04);
-  --surface-2:     rgba(255, 255, 255, 0.07);
-  --border:        rgba(255, 255, 255, 0.10);
-  --border-strong: rgba(255, 255, 255, 0.18);
+  --bg:            #0b4a4d;
+  --bg-raised:     #0e5a5d;
+  --surface:       rgba(255, 255, 255, 0.06);
+  --surface-2:     rgba(255, 255, 255, 0.10);
+  --border:        rgba(255, 255, 255, 0.14);
+  --border-strong: rgba(255, 255, 255, 0.24);
   --text:          #ffffff;
-  --muted:         rgba(255, 255, 255, 0.55);
-  --muted-2:       rgba(255, 255, 255, 0.38);
+  --heading:       #ffd1e3;
+  --muted:         rgba(255, 255, 255, 0.66);
+  --muted-2:       rgba(255, 255, 255, 0.46);
   --accent:        #ffffff;
-  --accent-text:   #0a0a0b;
-  --danger:        #ff6b6b;
+  --accent-text:   #0b4a4d;
+  --danger:        #ff9aa8;
   --radius:        12px;
   --gap:           16px;
 }
@@ -26,13 +27,23 @@ body {
   margin: 0;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--text);
-  background: var(--bg);
+  /* Gym flat-lay photo (web/bg.jpg) under a turquoise veil so text stays
+     readable. Drop the two rgba alphas to let more of the photo through, raise
+     them to mute it. --bg shows as a fallback if the image is missing. */
+  background:
+    linear-gradient(rgba(8, 48, 50, 0.80), rgba(8, 48, 50, 0.86)),
+    var(--bg) url("/bg.jpg") center center / cover no-repeat fixed;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
 .hidden {
   display: none !important;
+}
+
+/* Headings and the wordmark in light pink; body copy stays white. */
+h1, h2, h3, h4, .brand {
+  color: var(--heading);
 }
 
 /* Layout --------------------------------------------------------------- */
@@ -612,6 +623,7 @@ button.ghost:hover {
 
 .set-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   align-items: center;
   margin-bottom: 6px;
@@ -625,6 +637,24 @@ button.ghost:hover {
   font: inherit;
   background: rgba(255, 255, 255, 0.05);
   color: var(--text);
+}
+
+.set-note {
+  flex: 1 1 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  font: inherit;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+
+/* A saved set note, shown read-only under a set line in history / the coach view. */
+.set-note-text {
+  margin-top: 2px;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--muted);
 }
 
 .set-done {

@@ -94,6 +94,7 @@
             <button class="dash-tab active" data-panel="exercises" type="button">Exercises</button>
             <button class="dash-tab" data-panel="plans" type="button">Plans</button>
             <button class="dash-tab" data-panel="trainees" type="button">Trainees</button>
+            <button class="dash-tab" data-panel="trainee-log" type="button">Trainee Log</button>
           </nav>
           <button class="logout-btn ghost" type="button">Log out</button>
         </aside>
@@ -164,6 +165,8 @@
 
             <ul id="trainee-list" class="item-list"></ul>
           </div>
+
+          <div id="panel-trainee-log" class="panel hidden"></div>
         </div>
       </section>
 
@@ -197,9 +200,6 @@
               </label>
               <label id="session-day-field" class="hidden">Day
                 <select name="day"></select>
-              </label>
-              <label>Notes
-                <input type="text" name="notes" />
               </label>
 
               <div id="session-exercises"></div>
