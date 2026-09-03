@@ -11,6 +11,9 @@ weekly streak).
 One process, one SQLite file, no external services. A small vanilla-JS frontend
 is served by the same server.
 
+**Live:** <https://fitplan-web.fly.dev> &middot; API docs (Swagger UI):
+<https://fitplan-web.fly.dev/docs>
+
 ## Screenshots
 
 <table>
@@ -28,14 +31,14 @@ is served by the same server.
   </tr>
 </table>
 
-## Run
+## Run locally
 
 ```bash
 docker compose up --build
 ```
 
-- App: <http://localhost:8080>
-- API docs (Swagger UI): <http://localhost:8080/docs>
+Comes up on port 8080: the app at `http://localhost:8080`, Swagger UI at
+`http://localhost:8080/docs`.
 
 For a non-default signing key, put `FITPLAN_JWT_SECRET=...` in a local `.env` file
 first. Data persists in the `fitplan-data` volume (`docker compose down -v` wipes it).
