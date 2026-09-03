@@ -135,11 +135,8 @@ json set_to_json(const models::SessionSet& s) {
 json session_to_json(const services::SessionWithSets& sws) {
     const models::WorkoutSession& h = sws.session;
     json out{
-        {"id", h.id},
-        {"trainee_id", h.trainee_id},
-        {"performed_at", h.performed_at},
-        {"status", h.status},
-        {"plan_id", nullptr},
+        {"id", h.id},         {"trainee_id", h.trainee_id}, {"performed_at", h.performed_at},
+        {"status", h.status}, {"plan_id", nullptr},
     };
     put_optional(out, "plan_id", h.plan_id);
 

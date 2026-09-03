@@ -210,11 +210,11 @@ TEST_F(SessionFlowTest, LogListPatchAndDeleteASession) {
 
     // PATCH can also replace the whole set list; numbering restarts at 1 and
     // each replacement set carries its own note.
-    auto reset = req("PATCH", "/api/my/sessions/" + std::to_string(sid),
-                     R"({"sets":[{"exercise_id":)" + std::to_string(ex1_) + R"(,"plan_item_id":)" +
-                         std::to_string(item1_) +
-                         R"(,"reps":3,"weight":120,"notes":"heavy triple"}]})",
-                     trainee_);
+    auto reset =
+        req("PATCH", "/api/my/sessions/" + std::to_string(sid),
+            R"({"sets":[{"exercise_id":)" + std::to_string(ex1_) + R"(,"plan_item_id":)" +
+                std::to_string(item1_) + R"(,"reps":3,"weight":120,"notes":"heavy triple"}]})",
+            trainee_);
     ASSERT_EQ(reset.status, 200) << reset.body;
     EXPECT_NE(reset.body.find(R"("reps":3)"), std::string::npos);
     EXPECT_NE(reset.body.find(R"("notes":"heavy triple")"), std::string::npos);
@@ -313,10 +313,10 @@ TEST_F(SessionFlowTest, ValidationAndRoleMatrix) {
                   .status,
               403);
     EXPECT_EQ(http_request(port_, "GET", "/api/my/sessions", "").status, 401);
-    EXPECT_EQ(http_request(port_, "GET",
-                           "/api/trainees/" + std::to_string(trainee_id_) + "/sessions", "")
-                  .status,
-              401);
+    EXPECT_EQ(
+        http_request(port_, "GET", "/api/trainees/" + std::to_string(trainee_id_) + "/sessions", "")
+            .status,
+        401);
 }
 
 }  // namespace
