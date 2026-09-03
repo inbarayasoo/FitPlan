@@ -7,14 +7,11 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <header class="topbar">
-      <span class="brand">FitPlan</span>
-      <button id="logout-btn" class="ghost hidden" type="button">Log out</button>
-    </header>
-
     <main id="app">
       <!-- Auth view: shown while nobody is logged in -->
       <section id="auth-view" class="card hidden">
+        <div class="brand">FitPlan</div>
+
         <div class="tabs">
           <button id="show-login" class="tab active" type="button">Log in</button>
           <button id="show-register" class="tab" type="button">Register</button>
@@ -68,6 +65,7 @@
       <!-- Email verification: shown after register, or after a login blocked
            because the address is not confirmed yet -->
       <section id="verify-view" class="card hidden">
+        <div class="brand">FitPlan</div>
         <h2 class="verify-title">Check your email</h2>
         <p class="verify-lead">
           We sent a 6-digit code to <strong id="verify-email"></strong>.
@@ -89,120 +87,134 @@
       </section>
 
       <!-- Coach dashboard -->
-      <section id="coach-view" class="hidden">
-        <div class="dash-tabs">
-          <button class="dash-tab active" data-panel="exercises" type="button">Exercises</button>
-          <button class="dash-tab" data-panel="plans" type="button">Plans</button>
-          <button class="dash-tab" data-panel="trainees" type="button">Trainees</button>
-        </div>
+      <section id="coach-view" class="dash hidden">
+        <aside class="sidebar">
+          <div class="brand">FitPlan</div>
+          <nav class="dash-tabs">
+            <button class="dash-tab active" data-panel="exercises" type="button">Exercises</button>
+            <button class="dash-tab" data-panel="plans" type="button">Plans</button>
+            <button class="dash-tab" data-panel="trainees" type="button">Trainees</button>
+          </nav>
+          <button class="logout-btn ghost" type="button">Log out</button>
+        </aside>
 
-        <div id="panel-exercises" class="panel">
-          <form id="exercise-form" class="stack-form">
-            <label>Name
-              <input type="text" name="name" required />
-            </label>
-            <label>Category
-              <input type="text" name="category" />
-            </label>
-            <label>Primary muscle
-              <input type="text" name="primary_muscle" />
-            </label>
-            <label>Description
-              <input type="text" name="description" />
-            </label>
-            <label>Tutorial video URL
-              <input type="url" name="video_url"
-                     placeholder="https://www.youtube.com/watch?v=..." />
-            </label>
-            <div class="form-actions">
-              <button type="submit" id="exercise-submit">Add exercise</button>
-              <button type="button" id="exercise-cancel" class="ghost hidden">Cancel</button>
-            </div>
-          </form>
+        <div class="dash-main">
+          <div id="panel-exercises" class="panel">
+            <form id="exercise-form" class="stack-form">
+              <label>Name
+                <input type="text" name="name" required />
+              </label>
+              <label>Category
+                <input type="text" name="category" />
+              </label>
+              <label>Primary muscle
+                <input type="text" name="primary_muscle" />
+              </label>
+              <label>Description
+                <input type="text" name="description" />
+              </label>
+              <label>Tutorial video URL
+                <input type="url" name="video_url"
+                       placeholder="https://www.youtube.com/watch?v=..." />
+              </label>
+              <div class="form-actions">
+                <button type="submit" id="exercise-submit">Add exercise</button>
+                <button type="button" id="exercise-cancel" class="ghost hidden">Cancel</button>
+              </div>
+            </form>
 
-          <ul id="exercise-list" class="item-list"></ul>
-        </div>
-        <div id="panel-plans" class="panel hidden">
-          <form id="plan-form" class="stack-form">
-            <label>Trainee
-              <select name="trainee_id" required></select>
-            </label>
-            <label>Plan name
-              <input type="text" name="name" required />
-            </label>
-            <label>Notes
-              <input type="text" name="notes" />
-            </label>
+            <ul id="exercise-list" class="item-list"></ul>
+          </div>
 
-            <div id="plan-items"></div>
-            <button type="button" id="plan-add-item" class="ghost">Add exercise</button>
+          <div id="panel-plans" class="panel hidden">
+            <form id="plan-form" class="stack-form">
+              <label>Trainee
+                <select name="trainee_id" required></select>
+              </label>
+              <label>Plan name
+                <input type="text" name="name" required />
+              </label>
+              <label>Notes
+                <input type="text" name="notes" />
+              </label>
 
-            <div class="form-actions">
-              <button type="submit" id="plan-submit">Create plan</button>
-              <button type="button" id="plan-cancel" class="ghost hidden">Cancel</button>
-            </div>
-          </form>
+              <div id="plan-items"></div>
+              <button type="button" id="plan-add-item" class="ghost">Add exercise</button>
 
-          <ul id="plan-list" class="item-list"></ul>
-          <div id="plan-detail" class="plan-detail hidden"></div>
-        </div>
-        <div id="panel-trainees" class="panel hidden">
-          <form id="trainee-form" class="stack-form">
-            <label>Trainee email
-              <input type="email" name="email" required
-                     placeholder="trainee@example.com" />
-            </label>
-            <div class="form-actions">
-              <button type="submit">Add to roster</button>
-            </div>
-          </form>
+              <div class="form-actions">
+                <button type="submit" id="plan-submit">Create plan</button>
+                <button type="button" id="plan-cancel" class="ghost hidden">Cancel</button>
+              </div>
+            </form>
 
-          <ul id="trainee-list" class="item-list"></ul>
+            <ul id="plan-list" class="item-list"></ul>
+            <div id="plan-detail" class="plan-detail hidden"></div>
+          </div>
+
+          <div id="panel-trainees" class="panel hidden">
+            <form id="trainee-form" class="stack-form">
+              <label>Trainee email
+                <input type="email" name="email" required
+                       placeholder="trainee@example.com" />
+              </label>
+              <div class="form-actions">
+                <button type="submit">Add to roster</button>
+              </div>
+            </form>
+
+            <ul id="trainee-list" class="item-list"></ul>
+          </div>
         </div>
       </section>
 
       <!-- Trainee dashboard -->
-      <section id="trainee-view" class="hidden">
-        <div class="dash-tabs">
-          <button class="dash-tab active" data-panel="my-plan" type="button">My Plan</button>
-          <button class="dash-tab" data-panel="log-session" type="button">Log Session</button>
-          <button class="dash-tab" data-panel="notes" type="button">Notes</button>
-          <button class="dash-tab" data-panel="my-progress" type="button">My Progress</button>
+      <section id="trainee-view" class="dash hidden">
+        <aside class="sidebar">
+          <div class="brand">FitPlan</div>
+          <nav class="dash-tabs">
+            <button class="dash-tab active" data-panel="my-plan" type="button">My Plan</button>
+            <button class="dash-tab" data-panel="log-session" type="button">Log Session</button>
+            <button class="dash-tab" data-panel="notes" type="button">Notes</button>
+            <button class="dash-tab" data-panel="my-progress" type="button">My Progress</button>
+          </nav>
+          <button class="logout-btn ghost" type="button">Log out</button>
+        </aside>
+
+        <div class="dash-main">
+          <div id="panel-my-plan" class="panel"></div>
+          <div id="panel-notes" class="panel hidden"></div>
+          <div id="panel-log-session" class="panel hidden">
+            <form id="session-form" class="stack-form">
+              <label>Date
+                <input type="date" name="performed_on" />
+              </label>
+              <label>Status
+                <select name="status">
+                  <option value="completed">Completed</option>
+                  <option value="in_progress">In progress</option>
+                  <option value="planned">Planned</option>
+                </select>
+              </label>
+              <label id="session-day-field" class="hidden">Day
+                <select name="day"></select>
+              </label>
+              <label>Notes
+                <input type="text" name="notes" />
+              </label>
+
+              <div id="session-exercises"></div>
+
+              <div class="form-actions">
+                <button type="submit" id="session-submit">Log session</button>
+                <button type="button" id="session-cancel" class="ghost hidden">Cancel</button>
+              </div>
+            </form>
+
+            <h3>Recent sessions</h3>
+            <ul id="session-history" class="item-list"></ul>
+          </div>
+          <div id="panel-my-progress" class="panel hidden"></div>
         </div>
-
-        <div id="panel-my-plan" class="panel"></div>
-        <div id="panel-notes" class="panel hidden"></div>
-        <div id="panel-log-session" class="panel hidden">
-          <form id="session-form" class="stack-form">
-            <label>Date
-              <input type="date" name="performed_on" />
-            </label>
-            <label>Status
-              <select name="status">
-                <option value="completed">Completed</option>
-                <option value="in_progress">In progress</option>
-                <option value="planned">Planned</option>
-              </select>
-            </label>
-            <label id="session-day-field" class="hidden">Day
-              <select name="day"></select>
-            </label>
-            <label>Notes
-              <input type="text" name="notes" />
-            </label>
-
-            <div id="session-exercises"></div>
-
-            <div class="form-actions">
-              <button type="submit" id="session-submit">Log session</button>
-              <button type="button" id="session-cancel" class="ghost hidden">Cancel</button>
-            </div>
-          </form>
-
-          <h3>Recent sessions</h3>
-          <ul id="session-history" class="item-list"></ul>
-        </div>
-        <div id="panel-my-progress" class="panel hidden"></div>
       </section>
     </main>
 

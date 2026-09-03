@@ -15,7 +15,6 @@ function showAuthView() {
   document.getElementById("verify-view").classList.add("hidden");
   document.getElementById("coach-view").classList.add("hidden");
   document.getElementById("trainee-view").classList.add("hidden");
-  document.getElementById("logout-btn").classList.add("hidden");
   clearResendCooldown();
   resetGoogleRolePrompt();
   setupGoogleSignIn();
@@ -41,7 +40,6 @@ function showDashboard(user) {
   document.getElementById("auth-view").classList.add("hidden");
   document.getElementById("verify-view").classList.add("hidden");
   clearResendCooldown();
-  document.getElementById("logout-btn").classList.remove("hidden");
 
   const isCoach = user.role === "coach";
   document.getElementById("coach-view").classList.toggle("hidden", !isCoach);
@@ -136,7 +134,6 @@ function showVerifyView(email, options) {
   document.getElementById("auth-view").classList.add("hidden");
   document.getElementById("coach-view").classList.add("hidden");
   document.getElementById("trainee-view").classList.add("hidden");
-  document.getElementById("logout-btn").classList.add("hidden");
   document.getElementById("verify-view").classList.remove("hidden");
   document.getElementById("verify-email").textContent = email;
 
@@ -244,7 +241,7 @@ async function setupGoogleSignIn() {
       callback: handleGoogleCredential,
     });
     google.accounts.id.renderButton(document.getElementById("google-button"), {
-      theme: "outline",
+      theme: "filled_black",
       size: "large",
       text: "continue_with",
       width: 260,
@@ -880,19 +877,20 @@ function renderMyPlan(panel, plan) {
   panel.textContent = "";
 
   const heading = document.createElement("h2");
+  heading.className = "plan-title";
   heading.textContent = plan.name;
   panel.appendChild(heading);
 
   if (plan.notes) {
     const notes = document.createElement("p");
-    notes.className = "item-sub";
+    notes.className = "plan-notes";
     notes.textContent = plan.notes;
     panel.appendChild(notes);
   }
 
   // Group the exercises by their day label, keeping first-seen order. Items
   // with no label fall together under a single "Workout" group, so a plan
-  // that does not use days still shows as one plain list.
+  // that does not use days still shows as one card.
   const order = [];
   const byDay = {};
   plan.items.forEach((item) => {
@@ -904,18 +902,51 @@ function renderMyPlan(panel, plan) {
     byDay[label].push(item);
   });
 
-  order.forEach((label) => {
-    if (order.length > 1 || label !== "Workout") {
-      const dayHeading = document.createElement("h3");
-      dayHeading.textContent = label;
-      panel.appendChild(dayHeading);
-    }
-
-    const list = document.createElement("ul");
-    list.className = "item-list";
-    byDay[label].forEach((item) => list.appendChild(myPlanItemRow(item)));
-    panel.appendChild(list);
+  const stack = document.createElement("div");
+  stack.className = "day-stack";
+  order.forEach((label, index) => {
+    const showLabel = order.length > 1 || label !== "Workout";
+    stack.appendChild(dayCard(label, byDay[label], showLabel, index === 0));
   });
+  panel.appendChild(stack);
+}
+
+// One collapsible workout day. `open` expands it on first render (the first
+// day); the rest start collapsed. Native <details>, no JS toggle needed.
+function dayCard(label, items, showLabel, open) {
+  const card = document.createElement("details");
+  card.className = "day-card";
+  card.open = open;
+
+  const summary = document.createElement("summary");
+  summary.className = "day-card-summary";
+
+  const text = document.createElement("span");
+  text.className = "day-card-text";
+  if (showLabel) {
+    const dayLabel = document.createElement("span");
+    dayLabel.className = "day-label";
+    dayLabel.textContent = label;
+    text.appendChild(dayLabel);
+  }
+  const title = document.createElement("span");
+  title.className = "day-card-title";
+  title.textContent = items.map((item) => item.exercise_name).join(", ");
+  text.appendChild(title);
+  summary.appendChild(text);
+
+  const chevron = document.createElement("span");
+  chevron.className = "day-chevron";
+  chevron.textContent = "›";  // ›
+  summary.appendChild(chevron);
+  card.appendChild(summary);
+
+  const list = document.createElement("ul");
+  list.className = "item-list day-ex-list";
+  items.forEach((item) => list.appendChild(myPlanItemRow(item)));
+  card.appendChild(list);
+
+  return card;
 }
 
 function myPlanItemRow(item) {
@@ -1533,8 +1564,9 @@ function lineChart(canvas, labels, values, label) {
         {
           label: label,
           data: values,
-          borderColor: "#2f6feb",
-          backgroundColor: "rgba(47, 111, 235, 0.12)",
+          borderColor: "#ffffff",
+          backgroundColor: "rgba(255, 255, 255, 0.10)",
+          pointBackgroundColor: "#ffffff",
           tension: 0.25,
           fill: true,
           pointRadius: 3,
@@ -1545,7 +1577,17 @@ function lineChart(canvas, labels, values, label) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true } },
+      scales: {
+        x: {
+          grid: { color: "rgba(255, 255, 255, 0.08)" },
+          ticks: { color: "rgba(255, 255, 255, 0.55)" },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: "rgba(255, 255, 255, 0.08)" },
+          ticks: { color: "rgba(255, 255, 255, 0.55)" },
+        },
+      },
     },
   });
   progressCharts.push(chart);
@@ -1661,6 +1703,12 @@ function selectTab(name) {
 
 // --- startup ---------------------------------------------
 async function start() {
+  if (window.Chart) {
+    // Chart.js defaults to dark text on a light ground; flip it for the theme.
+    Chart.defaults.color = "rgba(255, 255, 255, 0.6)";
+    Chart.defaults.borderColor = "rgba(255, 255, 255, 0.1)";
+  }
+
   document
     .getElementById("show-login")
     .addEventListener("click", () => selectTab("login"));
@@ -1683,9 +1731,9 @@ async function start() {
     showAuthView();
     selectTab("login");
   });
-  document
-    .getElementById("logout-btn")
-    .addEventListener("click", logout);
+  document.querySelectorAll(".logout-btn").forEach((btn) => {
+    btn.addEventListener("click", logout);
+  });
   document.querySelectorAll("#google-role .role-choice button").forEach((btn) => {
     btn.addEventListener("click", () => submitGoogleRole(btn.dataset.role));
   });
