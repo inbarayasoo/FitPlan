@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FitPlan — Privacy Policy</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      .legal {
+        max-width: 720px;
+        margin: 32px auto;
+        padding: 0 20px;
+      }
+      .legal h1 {
+        margin-bottom: 4px;
+      }
+      .legal .updated {
+        color: var(--muted);
+        font-size: 0.9rem;
+        margin-top: 0;
+      }
+      .legal h2 {
+        font-size: 1.05rem;
+        margin-top: 28px;
+      }
+      .legal a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" style="text-decoration: none; color: inherit">FitPlan</a>
+    </header>
+
+    <main class="legal">
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated: 3 September 2026</p>
+
+      <p>
+        FitPlan is a small workout-tracking application. This page explains what
+        personal data it stores and why. If anything here is unclear, contact the
+        address at the bottom.
+      </p>
+
+      <h2>What we collect</h2>
+      <ul>
+        <li>
+          <strong>Account details</strong> — your email address, a display name,
+          and a password. The password is stored only as a salted hash
+          (Argon2id); it is never stored or shown in plain text.
+        </li>
+        <li>
+          <strong>Training data you enter</strong> — exercises, workout plans,
+          logged sessions and sets, and per-exercise notes.
+        </li>
+        <li>
+          <strong>If you use "Sign in with Google"</strong> — we receive the
+          email address and name on your Google account. We do not receive your
+          Google password and request no other Google data.
+        </li>
+      </ul>
+
+      <h2>How we use it</h2>
+      <ul>
+        <li>To sign you in and keep your session (a signed token, no server-side session store).</li>
+        <li>To show a coach the trainees on their roster and those trainees' training data.</li>
+        <li>
+          To confirm your email address: when you register, a six-digit code is
+          sent to your address through
+          <a href="https://www.brevo.com" target="_blank" rel="noopener noreferrer">Brevo</a>,
+          a transactional-email provider. Only your address and the code are sent.
+        </li>
+      </ul>
+
+      <h2>Where it is stored</h2>
+      <p>
+        In a SQLite database on a server hosted by
+        <a href="https://fly.io" target="_blank" rel="noopener noreferrer">Fly.io</a>
+        (Frankfurt region). The connection to the site is encrypted (HTTPS).
+      </p>
+
+      <h2>Sharing</h2>
+      <p>
+        We do not sell your data and do not share it with third parties, other
+        than the email provider named above, which only handles the verification
+        message. Within the app, a coach can see the training data of trainees on
+        their own roster.
+      </p>
+
+      <h2>Retention and deletion</h2>
+      <p>
+        Your data is kept while your account exists. To have your account and its
+        data deleted, email the address below.
+      </p>
+
+      <h2>Contact</h2>
+      <p><a href="mailto:inbar2112@gmail.com">inbar2112@gmail.com</a></p>
+    </main>
+  </body>
+</html>

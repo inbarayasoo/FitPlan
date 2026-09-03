@@ -1,0 +1,48 @@
+# fly.toml - Fly.io deployment for FitPlan.
+#
+# One-time setup (from the repo root, after `fly auth login`):
+#   fly launch --no-deploy --copy-config --name <your-app-name> --region fra
+#   fly volumes create fitplan_data --size 1 --region fra --yes
+#   fly secrets set \
+#     FITPLAN_JWT_SECRET="$(openssl rand -hex 32)" \
+#     FITPLAN_BREVO_API_KEY="xkeysib-..." \
+#     FITPLAN_EMAIL_FROM="you@example.com" \
+#     FITPLAN_PUBLIC_BASE_URL="https://<your-app-name>.fly.dev"
+# Then, and on every update:
+#   fly deploy
+
+app = "fitplan-web"
+primary_region = "fra"   # Frankfurt (closest Fly region to Israel)
+
+[build]
+  # Uses the repo's multi-stage Dockerfile (runtime image ~141 MB).
+
+[env]
+  FITPLAN_LOG_LEVEL = "info"
+  # Secrets (JWT secret, Brevo key, EMAIL_FROM, PUBLIC_BASE_URL) are set with
+  # `fly secrets set`, never here - see the header.
+
+[http_service]
+  internal_port = 8080          # matches FITPLAN_PORT in the Dockerfile
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0      # scale to zero when idle -> stays free; ~3 s cold start
+  processes = ["app"]
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/api/health"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+
+# Persistent disk for the SQLite database. FITPLAN_DB_PATH=/data/fitplan.db is
+# set in the Dockerfile, so the data survives restarts and redeploys.
+[[mounts]]
+  source = "fitplan_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
