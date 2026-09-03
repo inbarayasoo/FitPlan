@@ -37,10 +37,12 @@ FROM ubuntu:24.04 AS runtime
 
 # The shared libraries `ldd build/release/fitplan` reports, nothing more.
 # libssl3t64 / libcurl4t64 are Ubuntu 24.04's renamed libssl3 / libcurl4
-# (64-bit time_t transition). libcurl4t64 backs the outbound HTTPS the app now
-# does to fetch Google's JWKS. curl (the CLI) is only for the HEALTHCHECK below.
+# (64-bit time_t transition). libcurl4t64 backs the outbound HTTPS the app makes
+# to Google's JWKS and the Brevo email API; ca-certificates gives it a trust
+# store (without it every TLS handshake fails). curl (the CLI) is only for the
+# HEALTHCHECK below.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libssl3t64 libsodium23 libsqlite3-0 libcurl4t64 curl \
+        ca-certificates libssl3t64 libsodium23 libsqlite3-0 libcurl4t64 curl \
     && rm -rf /var/lib/apt/lists/*
 
 # An unprivileged account to run the server as.
