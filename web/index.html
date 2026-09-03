@@ -65,6 +65,29 @@
         </div>
       </section>
 
+      <!-- Email verification: shown after register, or after a login blocked
+           because the address is not confirmed yet -->
+      <section id="verify-view" class="card hidden">
+        <h2 class="verify-title">Check your email</h2>
+        <p class="verify-lead">
+          We sent a 6-digit code to <strong id="verify-email"></strong>.
+          Enter it below to activate your account.
+        </p>
+
+        <form id="verify-form" class="form">
+          <label>Verification code
+            <input type="text" name="code" inputmode="numeric" pattern="[0-9]*"
+                   maxlength="6" autocomplete="one-time-code" required />
+          </label>
+          <button type="submit">Verify</button>
+        </form>
+
+        <div class="verify-actions">
+          <button id="verify-resend" class="ghost" type="button">Resend code</button>
+          <button id="verify-back" class="ghost" type="button">Back to log in</button>
+        </div>
+      </section>
+
       <!-- Coach dashboard -->
       <section id="coach-view" class="hidden">
         <div class="dash-tabs">

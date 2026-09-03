@@ -24,6 +24,7 @@
 #include "fitplan/Version.hpp"
 #include "middleware/JwtAuthMiddleware.hpp"
 #include "repositories/CoachTraineeRepository.hpp"
+#include "repositories/EmailVerificationTokenRepository.hpp"
 #include "repositories/ExerciseNoteRepository.hpp"
 #include "repositories/ExerciseRepository.hpp"
 #include "repositories/PlanItemRepository.hpp"
@@ -32,10 +33,15 @@
 #include "repositories/SessionSetRepository.hpp"
 #include "repositories/UserRepository.hpp"
 #include "services/AuthService.hpp"
+#include "services/BrevoEmailSender.hpp"
+#include "services/EmailSender.hpp"
+#include "services/EmailVerificationService.hpp"
 #include "services/GoogleIdTokenVerifier.hpp"
 #include "services/GoogleJwks.hpp"
+#include "services/LogEmailSender.hpp"
 #include "services/PlanService.hpp"
 #include "services/SessionService.hpp"
+#include "util/Clock.hpp"
 
 namespace {
 
@@ -121,6 +127,7 @@ int main(int argc, char** argv) {
     fitplan::repositories::ExerciseNoteRepository exercise_notes(database->connection());
     fitplan::repositories::SessionRepository sessions_repo(database->connection());
     fitplan::repositories::SessionSetRepository session_sets(database->connection());
+    fitplan::repositories::EmailVerificationTokenRepository email_tokens(database->connection());
 
     // Google Sign-In is optional: build the verifier only when a client id is
     // configured. Both objects must outlive `auth`, which borrows the verifier.
@@ -134,8 +141,25 @@ int main(int argc, char** argv) {
         spdlog::info("Google Sign-In disabled (FITPLAN_GOOGLE_CLIENT_ID is unset)");
     }
 
+    // Email verification is always on for local sign-ups. With a Brevo key the
+    // code is emailed; without one it goes to the log so development still works.
+    fitplan::services::EmailSender email_sender =
+        config.transactional_email_enabled()
+            ? fitplan::services::make_brevo_email_sender(
+                  {config.brevo_api_key, config.email_from, config.email_from_name})
+            : fitplan::services::make_log_email_sender();
+    if (config.transactional_email_enabled()) {
+        spdlog::info("Transactional email enabled (Brevo, from {})", config.email_from);
+    } else {
+        spdlog::warn(
+            "FITPLAN_BREVO_API_KEY is unset - verification codes go to the log, not to email");
+    }
+    fitplan::services::EmailVerificationService email_verification(
+        users, email_tokens, email_sender, fitplan::util::iso_utc_now, config.public_base_url);
+
     fitplan::services::AuthService auth(users, config.jwt_secret, config.jwt_ttl_seconds,
-                                        google_verifier ? &*google_verifier : nullptr);
+                                        google_verifier ? &*google_verifier : nullptr,
+                                        &email_verification);
     fitplan::services::PlanService plan_service(database->connection(), plans_repo, plan_items,
                                                 roster, exercises);
     fitplan::services::SessionService session_service(

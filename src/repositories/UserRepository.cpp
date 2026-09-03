@@ -7,11 +7,12 @@ namespace fitplan::repositories {
 namespace {
 
 constexpr const char* kSelectColumns =
-    "id, email, password_hash, role, display_name, created_at, auth_provider, google_sub";
+    "id, email, password_hash, role, display_name, created_at, auth_provider, google_sub, "
+    "email_verified";
 
 // Column order must match kSelectColumns:
 //   0 id   1 email   2 password_hash   3 role   4 display_name
-//   5 created_at   6 auth_provider   7 google_sub
+//   5 created_at   6 auth_provider   7 google_sub   8 email_verified
 models::User row_to_user(SQLite::Statement& stmt) {
     models::User u;
     u.id = stmt.getColumn(0).getInt64();
@@ -22,6 +23,7 @@ models::User row_to_user(SQLite::Statement& stmt) {
     u.created_at = stmt.getColumn(5).getString();
     u.auth_provider = stmt.getColumn(6).getString();
     u.google_sub = stmt.getColumn(7).getString();  // "" when the column is NULL
+    u.email_verified = stmt.getColumn(8).getInt() != 0;
     return u;
 }
 
@@ -39,16 +41,18 @@ void bind_text_or_null(SQLite::Statement& stmt, int index, const std::string& va
 }  // namespace
 
 models::User UserRepository::create(const models::User& u) {
-    SQLite::Statement stmt(db_,
-                           "INSERT INTO users "
-                           "(email, password_hash, role, display_name, auth_provider, google_sub) "
-                           "VALUES (?, ?, ?, ?, ?, ?)");
+    SQLite::Statement stmt(
+        db_,
+        "INSERT INTO users "
+        "(email, password_hash, role, display_name, auth_provider, google_sub, email_verified) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)");
     stmt.bind(1, u.email);
     bind_text_or_null(stmt, 2, u.password_hash);
     stmt.bind(3, u.role);
     stmt.bind(4, u.display_name);
     stmt.bind(5, u.auth_provider.empty() ? std::string("local") : u.auth_provider);
     bind_text_or_null(stmt, 6, u.google_sub);
+    stmt.bind(7, u.email_verified ? 1 : 0);
     stmt.exec();
 
     return find_by_id(db_.getLastInsertRowid()).value();
@@ -94,6 +98,12 @@ void UserRepository::link_google(std::int64_t user_id, const std::string& google
     SQLite::Statement stmt(db_, "UPDATE users SET google_sub = ? WHERE id = ?");
     stmt.bind(1, google_sub);
     stmt.bind(2, user_id);
+    stmt.exec();
+}
+
+void UserRepository::mark_email_verified(std::int64_t user_id) {
+    SQLite::Statement stmt(db_, "UPDATE users SET email_verified = 1 WHERE id = ?");
+    stmt.bind(1, user_id);
     stmt.exec();
 }
 

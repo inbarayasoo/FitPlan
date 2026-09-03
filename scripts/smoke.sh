@@ -64,6 +64,11 @@ token_of() { sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p' "$1"; }
 first_id() { grep -o '"id":[0-9]\+' "$1" | head -1 | grep -o '[0-9]\+'; }
 nth_id() { grep -o '"id":[0-9]\+' "$2" | sed -n "${1}p" | grep -o '[0-9]\+'; }
 
+# The verification code the server just "sent" to <email>. With no Brevo API key
+# the LogEmailSender writes the email body (code included) to the server log at
+# warn level, which is exactly where this reads it from.
+code_for() { grep -A8 "to=<$1>" "$LOG" | grep -oE '^ +[0-9]{6}$' | tail -1 | tr -d ' '; }
+
 B="${WORKDIR}/body.json" # scratch body, overwritten each request
 CJ="${WORKDIR}/coach.json"
 TJ="${WORKDIR}/trainee.json"
@@ -72,12 +77,32 @@ PJ="${WORKDIR}/plan.json"
 
 echo "== health & auth =="
 assert "GET  /api/health" 200 "$(req "$B" "${BASE}/api/health")"
-assert "POST /api/auth/register (coach)" 201 "$(req "$CJ" "${json[@]}" \
+assert "POST /api/auth/register (coach)" 201 "$(req "$B" "${json[@]}" \
     -X POST "${BASE}/api/auth/register" \
     -d '{"email":"coach@smoke.dev","password":"password123","role":"coach","display_name":"Coach"}')"
-assert "POST /api/auth/register (trainee)" 201 "$(req "$TJ" "${json[@]}" \
+assert "POST /api/auth/register (trainee)" 201 "$(req "$B" "${json[@]}" \
     -X POST "${BASE}/api/auth/register" \
     -d '{"email":"trainee@smoke.dev","password":"password123","role":"trainee","display_name":"Trainee"}')"
+assert "POST /api/auth/login (unverified) -> 403" 403 "$(req "$B" "${json[@]}" \
+    -X POST "${BASE}/api/auth/login" \
+    -d '{"email":"coach@smoke.dev","password":"password123"}')"
+assert "POST /api/auth/verify-email (wrong code) -> 400" 400 "$(req "$B" "${json[@]}" \
+    -X POST "${BASE}/api/auth/verify-email" \
+    -d '{"email":"trainee@smoke.dev","code":"000000"}')"
+assert "POST /api/auth/verify-email (unknown addr) -> 404" 404 "$(req "$B" "${json[@]}" \
+    -X POST "${BASE}/api/auth/verify-email" \
+    -d '{"email":"nobody@smoke.dev","code":"123456"}')"
+assert "POST /api/auth/resend-verification -> 202" 202 "$(req "$B" "${json[@]}" \
+    -X POST "${BASE}/api/auth/resend-verification" -d '{"email":"nobody@smoke.dev"}')"
+assert "POST /api/auth/verify-email (coach)" 200 "$(req "$CJ" "${json[@]}" \
+    -X POST "${BASE}/api/auth/verify-email" \
+    -d "{\"email\":\"coach@smoke.dev\",\"code\":\"$(code_for coach@smoke.dev)\"}")"
+assert "POST /api/auth/verify-email (trainee)" 200 "$(req "$TJ" "${json[@]}" \
+    -X POST "${BASE}/api/auth/verify-email" \
+    -d "{\"email\":\"trainee@smoke.dev\",\"code\":\"$(code_for trainee@smoke.dev)\"}")"
+assert "POST /api/auth/login (verified) -> 200" 200 "$(req "$B" "${json[@]}" \
+    -X POST "${BASE}/api/auth/login" \
+    -d '{"email":"coach@smoke.dev","password":"password123"}')"
 assert "POST /api/auth/login (wrong pw)" 401 "$(req "$B" "${json[@]}" \
     -X POST "${BASE}/api/auth/login" \
     -d '{"email":"coach@smoke.dev","password":"nope"}')"
@@ -87,7 +112,7 @@ CT="$(token_of "$CJ")"
 TT="$(token_of "$TJ")"
 TID="$(first_id "$TJ")"
 if [[ -z "$CT" || -z "$TT" || -z "$TID" ]]; then
-    echo "smoke: could not read tokens / trainee id from the register responses" >&2
+    echo "smoke: could not read tokens / trainee id from the verify-email responses" >&2
     cat "$CJ" "$TJ" >&2
     exit 1
 fi

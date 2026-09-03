@@ -13,9 +13,12 @@
 #include "db/Database.hpp"
 #include "HttpTestClient.hpp"
 #include "middleware/JwtAuthMiddleware.hpp"
+#include "repositories/EmailVerificationTokenRepository.hpp"
 #include "repositories/ExerciseRepository.hpp"
 #include "repositories/UserRepository.hpp"
 #include "services/AuthService.hpp"
+#include "services/EmailVerificationService.hpp"
+#include "util/Clock.hpp"
 
 namespace {
 
@@ -51,12 +54,7 @@ protected:
     }
 
     std::string register_user(const std::string& email, const std::string& role) {
-        const std::string body = R"({"email":")" + email +
-                                 R"(","password":"password123","role":")" + role +
-                                 R"(","display_name":"U"})";
-        auto r = http_request(port_, "POST", "/api/auth/register", body);
-        EXPECT_EQ(r.status, 201) << r.body;
-        return json_string(r.body, "access_token");
+        return fitplan::testutil::register_and_verify(port_, mail_, email, role);
     }
 
     HttpResponse req(const std::string& method, const std::string& path, const std::string& body,
@@ -70,8 +68,12 @@ protected:
 
     fitplan::db::Database db_{":memory:", migrations_dir()};
     fitplan::repositories::UserRepository users_{db_.connection()};
+    fitplan::testutil::CapturingEmailSender mail_;
+    fitplan::repositories::EmailVerificationTokenRepository ev_tokens_{db_.connection()};
+    fitplan::services::EmailVerificationService ev_{users_, ev_tokens_, mail_.sender(),
+                                                    fitplan::util::iso_utc_now, "http://itest"};
     fitplan::repositories::ExerciseRepository exercises_{db_.connection()};
-    fitplan::services::AuthService auth_{users_, kSecret, 3600};
+    fitplan::services::AuthService auth_{users_, kSecret, 3600, nullptr, &ev_};
     fitplan::app::FitPlanApp app_;
     std::thread server_;
     std::uint16_t port_ = 0;

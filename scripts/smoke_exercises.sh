@@ -21,24 +21,24 @@ done
 
 code() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
 token_of() { sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p' "$1"; }
+# The verification code the server just "sent" to <email> (no Brevo key -> the
+# LogEmailSender writes the email body to the server log at warn level).
+code_for() { grep -A8 "to=<$1>" "$LOG" | grep -oE '^ +[0-9]{6}$' | tail -1 | tr -d ' '; }
 
-echo "== register coach A -> 201 =="
-curl -s -o /tmp/fp_ex_a.json -w 'status %{http_code}\n' -X POST "${BASE}/api/auth/register" \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"coachA@fp.com","password":"password123","role":"coach","display_name":"Coach A"}'
-A=$(token_of /tmp/fp_ex_a.json)
+reg() { # email role name outfile -> registers + verifies, writes the verify
+        # response to $4, echoes only the token (stdout is captured by the caller)
+  curl -s -o /dev/null -X POST "${BASE}/api/auth/register" -H 'Content-Type: application/json' \
+    -d "{\"email\":\"$1\",\"password\":\"password123\",\"role\":\"$2\",\"display_name\":\"$3\"}"
+  curl -s -o "$4" -X POST "${BASE}/api/auth/verify-email" -H 'Content-Type: application/json' \
+    -d "{\"email\":\"$1\",\"code\":\"$(code_for "$1")\"}"
+  token_of "$4"
+}
 
-echo "== register coach B -> 201 =="
-curl -s -o /tmp/fp_ex_b.json -w 'status %{http_code}\n' -X POST "${BASE}/api/auth/register" \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"coachB@fp.com","password":"password123","role":"coach","display_name":"Coach B"}'
-B=$(token_of /tmp/fp_ex_b.json)
-
-echo "== register trainee T -> 201 =="
-curl -s -o /tmp/fp_ex_t.json -w 'status %{http_code}\n' -X POST "${BASE}/api/auth/register" \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"traineeT@fp.com","password":"password123","role":"trainee","display_name":"Trainee T"}'
-T=$(token_of /tmp/fp_ex_t.json)
+echo "== register + verify 3 accounts =="
+A=$(reg coachA@fp.com coach "Coach A" /tmp/fp_ex_a.json)
+B=$(reg coachB@fp.com coach "Coach B" /tmp/fp_ex_b.json)
+T=$(reg traineeT@fp.com trainee "Trainee T" /tmp/fp_ex_t.json)
+echo "token lengths: A=${#A} B=${#B} T=${#T}"
 
 auth_a=(-H "Authorization: Bearer ${A}")
 auth_b=(-H "Authorization: Bearer ${B}")

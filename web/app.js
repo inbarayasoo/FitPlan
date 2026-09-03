@@ -12,9 +12,11 @@ function showToast(message, isError) {
 // --- view switching ---------------------------------------------
 function showAuthView() {
   document.getElementById("auth-view").classList.remove("hidden");
+  document.getElementById("verify-view").classList.add("hidden");
   document.getElementById("coach-view").classList.add("hidden");
   document.getElementById("trainee-view").classList.add("hidden");
   document.getElementById("logout-btn").classList.add("hidden");
+  clearResendCooldown();
   resetGoogleRolePrompt();
   setupGoogleSignIn();
 }
@@ -37,6 +39,8 @@ function selectCoachPanel(name) {
 
 function showDashboard(user) {
   document.getElementById("auth-view").classList.add("hidden");
+  document.getElementById("verify-view").classList.add("hidden");
+  clearResendCooldown();
   document.getElementById("logout-btn").classList.remove("hidden");
 
   const isCoach = user.role === "coach";
@@ -93,6 +97,13 @@ async function handleLogin(event) {
     const data = await api.post("/api/auth/login", credentials);
     onAuthSuccess(data);
   } catch (err) {
+    if (err.status === 403) {
+      // The password was right, the address just isn't confirmed. Send a fresh
+      // code and drop the user on the verification screen.
+      showToast("Confirm your email to finish signing in.", true);
+      showVerifyView(credentials.email, { resend: true });
+      return;
+    }
     showToast(err.detail || err.title || "Login failed", true);
   }
 }
@@ -107,11 +118,89 @@ async function handleRegister(event) {
     role: form.elements.role.value,
   };
   try {
-    const data = await api.post("/api/auth/register", payload);
-    onAuthSuccess(data);
+    await api.post("/api/auth/register", payload);
+    // 201 { verification_required: true } - the code was emailed, no token yet.
+    showVerifyView(payload.email, { resend: false });
   } catch (err) {
     showToast(err.detail || err.title || "Registration failed", true);
   }
+}
+
+// --- email verification ------------------------------------------
+// The address awaiting a code, and the "resend" cooldown timer.
+let pendingVerifyEmail = null;
+let resendTimer = null;
+
+function showVerifyView(email, options) {
+  pendingVerifyEmail = email;
+  document.getElementById("auth-view").classList.add("hidden");
+  document.getElementById("coach-view").classList.add("hidden");
+  document.getElementById("trainee-view").classList.add("hidden");
+  document.getElementById("logout-btn").classList.add("hidden");
+  document.getElementById("verify-view").classList.remove("hidden");
+  document.getElementById("verify-email").textContent = email;
+
+  const form = document.getElementById("verify-form");
+  form.reset();
+  form.elements.code.focus();
+
+  if (options && options.resend) {
+    api.post("/api/auth/resend-verification", { email: email }).catch(() => {});
+  }
+  startResendCooldown(60);  // a code was just sent, either way
+}
+
+async function handleVerifySubmit(event) {
+  event.preventDefault();
+  const code = event.target.elements.code.value.trim();
+  try {
+    const data = await api.post("/api/auth/verify-email", {
+      email: pendingVerifyEmail,
+      code: code,
+    });
+    onAuthSuccess(data);  // verification returns the first access token
+  } catch (err) {
+    showToast(err.detail || err.title || "That code did not work", true);
+  }
+}
+
+async function handleResend() {
+  if (!pendingVerifyEmail) {
+    return;
+  }
+  try {
+    await api.post("/api/auth/resend-verification", { email: pendingVerifyEmail });
+    showToast("If that address needs a code, a new one is on its way.");
+  } catch (err) {
+    showToast(err.detail || err.title || "Could not resend the code", true);
+  }
+  startResendCooldown(60);
+}
+
+function startResendCooldown(seconds) {
+  const btn = document.getElementById("verify-resend");
+  clearResendCooldown();
+  let left = seconds;
+  btn.disabled = true;
+  btn.textContent = "Resend in " + left + "s";
+  resendTimer = window.setInterval(() => {
+    left -= 1;
+    if (left <= 0) {
+      clearResendCooldown();
+      return;
+    }
+    btn.textContent = "Resend in " + left + "s";
+  }, 1000);
+}
+
+function clearResendCooldown() {
+  if (resendTimer !== null) {
+    window.clearInterval(resendTimer);
+    resendTimer = null;
+  }
+  const btn = document.getElementById("verify-resend");
+  btn.disabled = false;
+  btn.textContent = "Resend code";
 }
 
 // --- Google sign-in --------------------------------------------
@@ -1584,6 +1673,16 @@ async function start() {
   document
     .getElementById("register-form")
     .addEventListener("submit", handleRegister);
+  document
+    .getElementById("verify-form")
+    .addEventListener("submit", handleVerifySubmit);
+  document
+    .getElementById("verify-resend")
+    .addEventListener("click", handleResend);
+  document.getElementById("verify-back").addEventListener("click", () => {
+    showAuthView();
+    selectTab("login");
+  });
   document
     .getElementById("logout-btn")
     .addEventListener("click", logout);

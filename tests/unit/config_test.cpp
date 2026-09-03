@@ -38,8 +38,13 @@ TEST_F(ConfigEnvTest, UsesDefaultsWhenEnvironmentIsEmpty) {
     EXPECT_EQ(cfg.web_dir, "web");
     EXPECT_EQ(cfg.docs_dir, "docs");
     EXPECT_EQ(cfg.google_client_id, "");
+    EXPECT_EQ(cfg.brevo_api_key, "");
+    EXPECT_EQ(cfg.email_from, "no-reply@fitplan.dev");
+    EXPECT_EQ(cfg.email_from_name, "FitPlan");
+    EXPECT_EQ(cfg.public_base_url, "http://localhost:8080");
     EXPECT_TRUE(cfg.uses_insecure_jwt_secret());
     EXPECT_FALSE(cfg.google_sign_in_enabled());
+    EXPECT_FALSE(cfg.transactional_email_enabled());
 }
 
 TEST_F(ConfigEnvTest, ReadsOverridesFromEnvironment) {
@@ -53,6 +58,10 @@ TEST_F(ConfigEnvTest, ReadsOverridesFromEnvironment) {
     set_env("FITPLAN_WEB_DIR", "/opt/fitplan/web");
     set_env("FITPLAN_DOCS_DIR", "/opt/fitplan/docs");
     set_env("FITPLAN_GOOGLE_CLIENT_ID", "123-abc.apps.googleusercontent.com");
+    set_env("FITPLAN_BREVO_API_KEY", "xkeysib-secret");
+    set_env("FITPLAN_EMAIL_FROM", "hello@myfit.app");
+    set_env("FITPLAN_EMAIL_FROM_NAME", "MyFit");
+    set_env("FITPLAN_PUBLIC_BASE_URL", "https://myfit.app");
 
     const auto cfg = fitplan::Config::from_env();
 
@@ -65,8 +74,13 @@ TEST_F(ConfigEnvTest, ReadsOverridesFromEnvironment) {
     EXPECT_EQ(cfg.web_dir, "/opt/fitplan/web");
     EXPECT_EQ(cfg.docs_dir, "/opt/fitplan/docs");
     EXPECT_EQ(cfg.google_client_id, "123-abc.apps.googleusercontent.com");
+    EXPECT_EQ(cfg.brevo_api_key, "xkeysib-secret");
+    EXPECT_EQ(cfg.email_from, "hello@myfit.app");
+    EXPECT_EQ(cfg.email_from_name, "MyFit");
+    EXPECT_EQ(cfg.public_base_url, "https://myfit.app");
     EXPECT_FALSE(cfg.uses_insecure_jwt_secret());
     EXPECT_TRUE(cfg.google_sign_in_enabled());
+    EXPECT_TRUE(cfg.transactional_email_enabled());
 }
 
 TEST_F(ConfigEnvTest, InvalidIntegerFallsBackToDefault) {

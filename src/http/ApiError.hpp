@@ -63,6 +63,8 @@ inline crow::response problem_response_for(const services::AuthError& err) {
             return problem_response(401, "Authentication failed", err.what());
         case services::AuthErrorKind::kForbidden:
             return problem_response(403, "Forbidden", err.what());
+        case services::AuthErrorKind::kEmailNotVerified:
+            return problem_response(403, "Email not verified", err.what());
     }
     return problem_response(500, "Internal server error", "unhandled error kind");
 }

@@ -20,6 +20,7 @@
 #include "HttpTestClient.hpp"
 #include "middleware/JwtAuthMiddleware.hpp"
 #include "repositories/CoachTraineeRepository.hpp"
+#include "repositories/EmailVerificationTokenRepository.hpp"
 #include "repositories/ExerciseRepository.hpp"
 #include "repositories/PlanItemRepository.hpp"
 #include "repositories/PlanRepository.hpp"
@@ -27,8 +28,10 @@
 #include "repositories/SessionSetRepository.hpp"
 #include "repositories/UserRepository.hpp"
 #include "services/AuthService.hpp"
+#include "services/EmailVerificationService.hpp"
 #include "services/PlanService.hpp"
 #include "services/SessionService.hpp"
+#include "util/Clock.hpp"
 
 namespace {
 
@@ -92,12 +95,7 @@ protected:
     }
 
     std::string reg(const std::string& email, const std::string& role) {
-        const std::string body = R"({"email":")" + email +
-                                 R"(","password":"password123","role":")" + role +
-                                 R"(","display_name":"U"})";
-        auto r = http_request(port_, "POST", "/api/auth/register", body);
-        EXPECT_EQ(r.status, 201) << r.body;
-        return json_string(r.body, "access_token");
+        return fitplan::testutil::register_and_verify(port_, mail_, email, role);
     }
 
     HttpResponse req(const std::string& method, const std::string& path, const std::string& body,
@@ -157,13 +155,17 @@ protected:
 
     fitplan::db::Database db_{":memory:", migrations_dir()};
     fitplan::repositories::UserRepository users_{db_.connection()};
+    fitplan::testutil::CapturingEmailSender mail_;
+    fitplan::repositories::EmailVerificationTokenRepository ev_tokens_{db_.connection()};
+    fitplan::services::EmailVerificationService ev_{users_, ev_tokens_, mail_.sender(),
+                                                    fitplan::util::iso_utc_now, "http://itest"};
     fitplan::repositories::ExerciseRepository exercises_{db_.connection()};
     fitplan::repositories::PlanRepository plan_repo_{db_.connection()};
     fitplan::repositories::PlanItemRepository plan_items_{db_.connection()};
     fitplan::repositories::CoachTraineeRepository roster_{db_.connection()};
     fitplan::repositories::SessionRepository sessions_{db_.connection()};
     fitplan::repositories::SessionSetRepository session_sets_{db_.connection()};
-    fitplan::services::AuthService auth_{users_, kSecret, 3600};
+    fitplan::services::AuthService auth_{users_, kSecret, 3600, nullptr, &ev_};
     fitplan::services::PlanService plans_{db_.connection(), plan_repo_, plan_items_, roster_,
                                           exercises_};
     fitplan::services::SessionService session_svc_{db_.connection(), sessions_,   session_sets_,

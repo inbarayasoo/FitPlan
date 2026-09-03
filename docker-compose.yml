@@ -19,6 +19,13 @@ services:
       # Optional: a Google OAuth 2.0 client id turns on "Sign in with Google".
       # Leave it unset (the default) and the feature stays off, button hidden.
       FITPLAN_GOOGLE_CLIENT_ID: ${FITPLAN_GOOGLE_CLIENT_ID:-}
+      # Email verification is always on for email + password sign-ups. With a
+      # Brevo API key the six-digit code is emailed; without one it is written to
+      # the log so local runs still work. EMAIL_FROM must be a verified Brevo
+      # sender; PUBLIC_BASE_URL is the address shown in the email body.
+      FITPLAN_BREVO_API_KEY: ${FITPLAN_BREVO_API_KEY:-}
+      FITPLAN_EMAIL_FROM: ${FITPLAN_EMAIL_FROM:-no-reply@fitplan.dev}
+      FITPLAN_PUBLIC_BASE_URL: ${FITPLAN_PUBLIC_BASE_URL:-http://localhost:8080}
     volumes:
       - fitplan-data:/data
     restart: unless-stopped

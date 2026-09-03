@@ -3,24 +3,38 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <regex>
 #include <string>
+#include <vector>
 
 #include "db/Database.hpp"
 #include "GoogleTokenMint.hpp"
+#include "repositories/EmailVerificationTokenRepository.hpp"
 #include "repositories/UserRepository.hpp"
 #include "RsaTestKey.hpp"
 #include "services/AuthError.hpp"
+#include "services/EmailSender.hpp"
+#include "services/EmailVerificationError.hpp"
+#include "services/EmailVerificationService.hpp"
 #include "services/GoogleIdTokenVerifier.hpp"
 #include "services/GoogleJwks.hpp"
+#include "util/Clock.hpp"
 #include "util/Jwt.hpp"
 
 namespace {
 
 using fitplan::db::Database;
+using fitplan::repositories::EmailVerificationTokenRepository;
 using fitplan::repositories::UserRepository;
 using fitplan::services::AuthError;
 using fitplan::services::AuthErrorKind;
+using fitplan::services::AuthOutcome;
 using fitplan::services::AuthService;
+using fitplan::services::EmailMessage;
+using fitplan::services::EmailSender;
+using fitplan::services::EmailVerificationError;
+using fitplan::services::EmailVerificationErrorKind;
+using fitplan::services::EmailVerificationService;
 using fitplan::services::GoogleIdTokenVerifier;
 using fitplan::services::GoogleJwksCache;
 using fitplan::services::JwksDocument;
@@ -40,22 +54,79 @@ constexpr std::int64_t kTtl = 3600;
 
 class AuthServiceTest : public ::testing::Test {
 protected:
+    std::vector<EmailMessage> mail_;
+    EmailSender sender_ = [this](const EmailMessage& m) { mail_.push_back(m); };
+
     Database db_{":memory:", migrations_dir()};
     UserRepository users_{db_.connection()};
-    AuthService auth_{users_, kSecret, kTtl};
+    EmailVerificationTokenRepository ev_tokens_{db_.connection()};
+    EmailVerificationService ev_{users_, ev_tokens_, sender_, fitplan::util::iso_utc_now,
+                                 "http://test"};
+    AuthService auth_{users_, kSecret, kTtl, nullptr, &ev_};
+
+    std::string last_code() const {
+        std::smatch m;
+        return std::regex_search(mail_.back().body, m, std::regex(R"(\d{6})")) ? m.str(0)
+                                                                               : std::string{};
+    }
+
+    AuthOutcome register_and_verify(const std::string& email, const std::string& password,
+                                    const std::string& role, const std::string& name) {
+        auth_.register_user(email, password, role, name);
+        return auth_.verify_email(email, last_code());
+    }
 };
 
-TEST_F(AuthServiceTest, RegisterReturnsAUserAndAWorkingToken) {
+TEST_F(AuthServiceTest, RegisterCreatesAnUnverifiedUserAndEmailsACodeButNoToken) {
     const auto out = auth_.register_user("coach@example.com", "password123", "coach", "Coach One");
 
     EXPECT_GT(out.user.id, 0);
     EXPECT_EQ(out.user.email, "coach@example.com");
     EXPECT_EQ(out.user.role, "coach");
+    EXPECT_TRUE(out.verification_required);
+    EXPECT_FALSE(out.user.email_verified);
+    ASSERT_EQ(mail_.size(), 1u);
+    EXPECT_EQ(mail_.front().to_email, "coach@example.com");
+}
 
+TEST_F(AuthServiceTest, VerifyEmailIssuesTheFirstTokenAndMarksTheAccount) {
+    auth_.register_user("coach@example.com", "password123", "coach", "Coach One");
+
+    const auto out = auth_.verify_email("coach@example.com", last_code());
+
+    EXPECT_TRUE(out.user.email_verified);
     const auto claims = verify_access_token(out.access_token, kSecret);
     ASSERT_TRUE(claims.has_value());
     EXPECT_EQ(claims->user_id, out.user.id);
     EXPECT_EQ(claims->role, "coach");
+}
+
+TEST_F(AuthServiceTest, VerifyEmailRejectsAWrongCode) {
+    auth_.register_user("coach@example.com", "password123", "coach", "Coach One");
+    const std::string wrong = last_code() == "000000" ? "111111" : "000000";
+
+    try {
+        auth_.verify_email("coach@example.com", wrong);
+        FAIL() << "expected EmailVerificationError";
+    } catch (const EmailVerificationError& e) {
+        EXPECT_EQ(e.kind(), EmailVerificationErrorKind::kCodeMismatch);
+    }
+}
+
+TEST_F(AuthServiceTest, LoginIsBlockedUntilTheEmailIsVerified) {
+    auth_.register_user("coach@example.com", "password123", "coach", "Coach One");
+
+    try {
+        auth_.login("coach@example.com", "password123");
+        FAIL() << "expected AuthError";
+    } catch (const AuthError& e) {
+        EXPECT_EQ(e.kind(), AuthErrorKind::kEmailNotVerified);
+    }
+
+    auth_.verify_email("coach@example.com", last_code());
+    EXPECT_TRUE(
+        verify_access_token(auth_.login("coach@example.com", "password123").access_token, kSecret)
+            .has_value());
 }
 
 TEST_F(AuthServiceTest, RegisterStoresAHashNotThePlaintext) {
@@ -95,7 +166,7 @@ TEST_F(AuthServiceTest, RegisterRejectsAShortPassword) {
 }
 
 TEST_F(AuthServiceTest, LoginSucceedsWithCorrectPassword) {
-    auth_.register_user("login@example.com", "password123", "coach", "Coach");
+    register_and_verify("login@example.com", "password123", "coach", "Coach");
 
     const auto out = auth_.login("login@example.com", "password123");
 

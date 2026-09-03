@@ -15,7 +15,11 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <regex>
 #include <string>
+#include <vector>
+
+#include "services/EmailSender.hpp"
 
 namespace fitplan::testutil {
 
@@ -96,6 +100,47 @@ inline long long json_number(const std::string& body, const std::string& key) {
         return -1;
     }
     return std::strtoll(body.c_str() + start + needle.size(), nullptr, 10);
+}
+
+// Collects the emails the app would have sent so a test can read back the
+// verification code the server generated. Pass `sender()` to the app's
+// EmailVerificationService.
+struct CapturingEmailSender {
+    std::vector<fitplan::services::EmailMessage> messages;
+
+    fitplan::services::EmailSender sender() {
+        return [this](const fitplan::services::EmailMessage& m) { messages.push_back(m); };
+    }
+
+    std::string last_code() const {
+        if (messages.empty()) {
+            ADD_FAILURE() << "no verification email was captured";
+            return {};
+        }
+        std::smatch m;
+        return std::regex_search(messages.back().body, m, std::regex(R"(\d{6})")) ? m.str(0)
+                                                                                  : std::string{};
+    }
+};
+
+// Registers `email`, reads the code the server just "sent", verifies it, and
+// returns the access token from the verify-email response - the token an
+// integration test needs to act as this user.
+inline std::string register_and_verify(std::uint16_t port, CapturingEmailSender& mail,
+                                       const std::string& email, const std::string& role,
+                                       const std::string& password = "password123",
+                                       const std::string& display_name = "U") {
+    const std::string reg_body = R"({"email":")" + email + R"(","password":")" + password +
+                                 R"(","role":")" + role + R"(","display_name":")" + display_name +
+                                 R"("})";
+    const auto reg = http_request(port, "POST", "/api/auth/register", reg_body);
+    EXPECT_EQ(reg.status, 201) << reg.body;
+
+    const std::string verify_body =
+        R"({"email":")" + email + R"(","code":")" + mail.last_code() + R"("})";
+    const auto verified = http_request(port, "POST", "/api/auth/verify-email", verify_body);
+    EXPECT_EQ(verified.status, 200) << verified.body;
+    return json_string(verified.body, "access_token");
 }
 
 }  // namespace fitplan::testutil

@@ -7,7 +7,8 @@
 -- schema_version, so the schema itself is left alone.
 --
 -- Login credentials for the seeded accounts (the password_hash values are real
--- Argon2id hashes of these passwords):
+-- Argon2id hashes of these passwords). Both are seeded email_verified = 1 so the
+-- demo logins work without an email round-trip:
 --   coach@fitplan.dev    / coach-demo-pass
 --   trainee@fitplan.dev  / trainee-demo-pass
 
@@ -20,9 +21,9 @@ DELETE FROM coach_trainees;
 DELETE FROM users;
 
 -- ----- accounts -----------------------------------------------------------
-INSERT INTO users (id, email, password_hash, role, display_name) VALUES
-    (1, 'coach@fitplan.dev',   '$argon2id$v=19$m=65536,t=2,p=1$DobN91CmhudmltQh+IQGbw$MV7QM7fX/PPgEU5pWmEqjcXXavvEYiN8tMWnMTeVfaI', 'coach',   'Dana Coach'),
-    (2, 'trainee@fitplan.dev', '$argon2id$v=19$m=65536,t=2,p=1$jvSKpMnHMoO7hUgoFArBWA$ljmqnKoM9rYXTnpFchOpyP4PXJ+2TQAqwA95lQbxdTQ', 'trainee', 'Ron Trainee');
+INSERT INTO users (id, email, password_hash, role, display_name, email_verified) VALUES
+    (1, 'coach@fitplan.dev',   '$argon2id$v=19$m=65536,t=2,p=1$DobN91CmhudmltQh+IQGbw$MV7QM7fX/PPgEU5pWmEqjcXXavvEYiN8tMWnMTeVfaI', 'coach',   'Dana Coach',   1),
+    (2, 'trainee@fitplan.dev', '$argon2id$v=19$m=65536,t=2,p=1$jvSKpMnHMoO7hUgoFArBWA$ljmqnKoM9rYXTnpFchOpyP4PXJ+2TQAqwA95lQbxdTQ', 'trainee', 'Ron Trainee', 1);
 
 INSERT INTO coach_trainees (coach_id, trainee_id) VALUES (1, 2);
 

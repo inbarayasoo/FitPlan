@@ -16,6 +16,7 @@ struct User {
     std::string created_at;
     std::string auth_provider = "local";  // "local" | "google" - who created the account
     std::string google_sub;               // Google "sub" claim; empty for local accounts
+    bool email_verified = false;          // address confirmed; always true for Google accounts
 };
 
 }  // namespace fitplan::models

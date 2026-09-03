@@ -34,15 +34,15 @@ TEST_F(DatabaseTest, AppliesEveryMigration) {
     Database db(path(), migrations_dir());
 
     // Bump this each time a migration file is added under src/db/migrations.
-    EXPECT_EQ(db.schema_version(), 4);
+    EXPECT_EQ(db.schema_version(), 5);
 
     SQLite::Statement tables(
         db.connection(),
         "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name IN "
         "('users', 'coach_trainees', 'exercises', 'workout_plans', 'plan_items', "
-        "'workout_sessions', 'session_sets', 'exercise_notes')");
+        "'workout_sessions', 'session_sets', 'exercise_notes', 'email_verification_tokens')");
     ASSERT_TRUE(tables.executeStep());
-    EXPECT_EQ(tables.getColumn(0).getInt(), 8);
+    EXPECT_EQ(tables.getColumn(0).getInt(), 9);
 
     // Migration 002 added users.auth_provider with a 'local' default.
     SQLite::Statement col(
@@ -64,6 +64,13 @@ TEST_F(DatabaseTest, AppliesEveryMigration) {
         "SELECT count(*) FROM pragma_table_info('users') WHERE name = 'google_sub'");
     ASSERT_TRUE(gsub.executeStep());
     EXPECT_EQ(gsub.getColumn(0).getInt(), 1);
+
+    // Migration 005 added users.email_verified and the email_verification_tokens table.
+    SQLite::Statement ev(
+        db.connection(),
+        "SELECT count(*) FROM pragma_table_info('users') WHERE name = 'email_verified'");
+    ASSERT_TRUE(ev.executeStep());
+    EXPECT_EQ(ev.getColumn(0).getInt(), 1);
 }
 
 TEST_F(DatabaseTest, EnablesForeignKeyEnforcement) {
@@ -82,7 +89,7 @@ TEST_F(DatabaseTest, IsIdempotentAcrossRestarts) {
     // "duplicate column").
     EXPECT_NO_THROW({
         Database second(path(), migrations_dir());
-        EXPECT_EQ(second.schema_version(), 4);
+        EXPECT_EQ(second.schema_version(), 5);
     });
 }
 
@@ -112,7 +119,9 @@ TEST_F(DatabaseTest, Migration004RebuildPreservesRowsAndForeignKeys) {
     fs::create_directories(v3_dir);
     for (const auto& entry : fs::directory_iterator(migrations_dir())) {
         const std::string name = entry.path().filename().string();
-        if (name.rfind("004_", 0) != 0) {
+        // Everything up to and including 003; 004 is the rebuild under test and
+        // 005 builds on top of it.
+        if (name.rfind("004_", 0) != 0 && name.rfind("005_", 0) != 0) {
             fs::copy_file(entry.path(), v3_dir / name);
         }
     }
@@ -127,15 +136,16 @@ TEST_F(DatabaseTest, Migration004RebuildPreservesRowsAndForeignKeys) {
     }
 
     Database upgraded(path(), migrations_dir());
-    EXPECT_EQ(upgraded.schema_version(), 4);
+    EXPECT_EQ(upgraded.schema_version(), 5);
 
     SQLite::Statement user(
         upgraded.connection(),
-        "SELECT email, auth_provider, google_sub IS NULL FROM users WHERE id = 7");
+        "SELECT email, auth_provider, google_sub IS NULL, email_verified FROM users WHERE id = 7");
     ASSERT_TRUE(user.executeStep());
     EXPECT_EQ(user.getColumn(0).getString(), "keep@itest.com");
     EXPECT_EQ(user.getColumn(1).getString(), "local");
     EXPECT_EQ(user.getColumn(2).getInt(), 1);  // google_sub is NULL, not ""
+    EXPECT_EQ(user.getColumn(3).getInt(), 1);  // 005 grandfathers rows that predate verification
 
     SQLite::Statement child(upgraded.connection(),
                             "SELECT count(*) FROM exercises WHERE coach_id = 7");

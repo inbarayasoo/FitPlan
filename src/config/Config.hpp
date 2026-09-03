@@ -21,6 +21,10 @@ namespace fitplan {
 //   FITPLAN_WEB_DIR          static frontend directory (default web)
 //   FITPLAN_DOCS_DIR         API docs directory        (default docs)
 //   FITPLAN_GOOGLE_CLIENT_ID Google OAuth client id for Sign-In (default: empty)
+//   FITPLAN_BREVO_API_KEY    Brevo transactional-email API key (default: empty)
+//   FITPLAN_EMAIL_FROM       From: address for outbound mail   (default no-reply@fitplan.dev)
+//   FITPLAN_EMAIL_FROM_NAME  From: display name                (default FitPlan)
+//   FITPLAN_PUBLIC_BASE_URL  base URL shown in emails          (default http://localhost:8080)
 struct Config {
     std::string host = "0.0.0.0";
     std::uint16_t port = 8080;
@@ -33,6 +37,10 @@ struct Config {
     std::string web_dir = "web";
     std::string docs_dir = "docs";
     std::string google_client_id;
+    std::string brevo_api_key;
+    std::string email_from = "no-reply@fitplan.dev";
+    std::string email_from_name = "FitPlan";
+    std::string public_base_url = "http://localhost:8080";
 
     // Builds a Config from the current environment. Never throws: malformed
     // values fall back to the default and are reported through spdlog::warn.
@@ -44,6 +52,11 @@ struct Config {
     // True when a Google OAuth client id is configured. When false, the server
     // does not register POST /api/auth/google and the frontend hides the button.
     [[nodiscard]] bool google_sign_in_enabled() const;
+
+    // True when a Brevo API key is configured, so verification emails are really
+    // sent. When false the server still requires verification but writes the code
+    // to the log instead of emailing it (development / CI).
+    [[nodiscard]] bool transactional_email_enabled() const;
 };
 
 }  // namespace fitplan

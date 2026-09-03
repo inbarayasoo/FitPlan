@@ -37,6 +37,9 @@ public:
     // Leaves auth_provider untouched: it records how the account was created.
     void link_google(std::int64_t user_id, const std::string& google_sub);
 
+    // Marks the account's email address as confirmed. Idempotent.
+    void mark_email_verified(std::int64_t user_id);
+
 private:
     SQLite::Database& db_;
 };

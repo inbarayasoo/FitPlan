@@ -18,11 +18,14 @@ for _ in $(seq 1 50); do
 done
 
 code() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
+# The verification code the server just "sent" to <email> (no Brevo key -> the
+# LogEmailSender writes the email body to the server log at warn level).
+code_for() { grep -A8 "to=<$1>" "$LOG" | grep -oE '^ +[0-9]{6}$' | tail -1 | tr -d ' '; }
 
 echo "== health =="
 curl -s "${BASE}/api/health"; echo
 
-echo "== register coach -> expect 201 =="
+echo "== register coach -> expect 201, verification_required, no token =="
 curl -s -o /tmp/fp_reg.json -w 'status %{http_code}\n' -X POST "${BASE}/api/auth/register" \
   -H 'Content-Type: application/json' \
   -d '{"email":"coach@fp.com","password":"password123","role":"coach","display_name":"Coach One"}'
@@ -39,7 +42,29 @@ code -X POST "${BASE}/api/auth/register" -H 'Content-Type: application/json' \
 echo "== register malformed JSON -> expect 400 =="
 code -X POST "${BASE}/api/auth/register" -H 'Content-Type: application/json' -d 'not json'; echo
 
-echo "== login correct -> expect 200 =="
+echo "== login before verifying -> expect 403 =="
+code -X POST "${BASE}/api/auth/login" -H 'Content-Type: application/json' \
+  -d '{"email":"coach@fp.com","password":"password123"}'; echo
+
+echo "== verify-email wrong code -> expect 400 =="
+code -X POST "${BASE}/api/auth/verify-email" -H 'Content-Type: application/json' \
+  -d '{"email":"coach@fp.com","code":"000000"}'; echo
+
+echo "== verify-email unknown address -> expect 404 =="
+code -X POST "${BASE}/api/auth/verify-email" -H 'Content-Type: application/json' \
+  -d '{"email":"nobody@fp.com","code":"123456"}'; echo
+
+echo "== resend-verification -> expect 202 (always) =="
+code -X POST "${BASE}/api/auth/resend-verification" -H 'Content-Type: application/json' \
+  -d '{"email":"nobody@fp.com"}'; echo
+
+echo "== verify-email correct code -> expect 200, returns a token =="
+curl -s -o /tmp/fp_verify.json -w 'status %{http_code}\n' -X POST "${BASE}/api/auth/verify-email" \
+  -H 'Content-Type: application/json' \
+  -d "{\"email\":\"coach@fp.com\",\"code\":\"$(code_for coach@fp.com)\"}"
+cat /tmp/fp_verify.json; echo
+
+echo "== login correct (now verified) -> expect 200 =="
 curl -s -o /tmp/fp_login.json -w 'status %{http_code}\n' -X POST "${BASE}/api/auth/login" \
   -H 'Content-Type: application/json' \
   -d '{"email":"coach@fp.com","password":"password123"}'

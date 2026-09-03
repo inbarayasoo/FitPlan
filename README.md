@@ -28,6 +28,13 @@ client id>` to `.env`, with `http://localhost:8080` registered as an authorized
 JavaScript origin in Google Cloud. Unset, the feature stays off and the button is
 hidden; email + password always works.
 
+**Email verification**: every email + password sign-up must confirm its address
+with a six-digit code before it can log in. Set `FITPLAN_BREVO_API_KEY` (and
+`FITPLAN_EMAIL_FROM`, a verified [Brevo](https://www.brevo.com) sender) in `.env`
+to actually send the code; without a key the code is written to the server log so
+local runs still work. Google accounts are pre-verified. The seeded demo accounts
+below are seeded already verified.
+
 ## Build from source
 
 WSL2 / Ubuntu 24.04:
@@ -59,7 +66,8 @@ JWT HS256 ([jwt-cpp](https://github.com/Thalhammer/jwt-cpp)) + Argon2id
 [spdlog](https://github.com/gabime/spdlog) &middot; GoogleTest &middot;
 OpenAPI 3 + Swagger UI &middot; Docker &middot; GitHub Actions &middot; Google
 Sign-In / OIDC ([cpr](https://github.com/libcpr/cpr) for Google's JWKS, RS256
-verification via jwt-cpp).
+verification via jwt-cpp) &middot; transactional email for verification codes
+(Brevo API over cpr).
 
 ## Architecture
 

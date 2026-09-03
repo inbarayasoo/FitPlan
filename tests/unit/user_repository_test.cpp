@@ -117,6 +117,31 @@ TEST_F(UserRepositoryTest, FindByGoogleSubReturnsNulloptWhenAbsent) {
     EXPECT_FALSE(repo_.find_by_google_sub("no-such-sub").has_value());
 }
 
+TEST_F(UserRepositoryTest, CreateLeavesALocalAccountUnverified) {
+    const User saved = repo_.create(sample());
+
+    EXPECT_FALSE(saved.email_verified);
+    EXPECT_FALSE(repo_.find_by_id(saved.id)->email_verified);
+}
+
+TEST_F(UserRepositoryTest, CreateHonoursAnExplicitlyVerifiedAccount) {
+    User u = google_sample();
+    u.email_verified = true;
+
+    EXPECT_TRUE(repo_.create(u).email_verified);
+}
+
+TEST_F(UserRepositoryTest, MarkEmailVerifiedFlipsTheFlagAndIsIdempotent) {
+    const User saved = repo_.create(sample());
+    ASSERT_FALSE(saved.email_verified);
+
+    repo_.mark_email_verified(saved.id);
+    EXPECT_TRUE(repo_.find_by_id(saved.id)->email_verified);
+
+    repo_.mark_email_verified(saved.id);  // second call is a no-op, must not throw
+    EXPECT_TRUE(repo_.find_by_id(saved.id)->email_verified);
+}
+
 TEST_F(UserRepositoryTest, LinkGoogleAttachesTheIdentityWithoutChangingTheProvider) {
     const User saved = repo_.create(sample());
 

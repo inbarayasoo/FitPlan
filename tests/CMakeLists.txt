@@ -14,9 +14,12 @@ set(FITPLAN_TEST_SUPPORT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/support")
 # ---------------------------------------------------------------------------
 add_executable(fitplan_unit_tests
     unit/auth_service_test.cpp
+    unit/clock_test.cpp
     unit/coach_trainee_repository_test.cpp
     unit/config_test.cpp
     unit/database_test.cpp
+    unit/email_verification_service_test.cpp
+    unit/email_verification_token_repository_test.cpp
     unit/exercise_note_repository_test.cpp
     unit/exercise_repository_test.cpp
     unit/google_id_token_verifier_test.cpp
@@ -34,7 +37,8 @@ add_executable(fitplan_unit_tests
     unit/jwt_test.cpp
     unit/jwt_hardening_test.cpp
     unit/user_repository_test.cpp
-    unit/validation_test.cpp)
+    unit/validation_test.cpp
+    unit/verification_code_test.cpp)
 
 target_link_libraries(fitplan_unit_tests PRIVATE
     fitplan_lib
@@ -58,6 +62,7 @@ find_package(Threads REQUIRED)
 
 add_executable(fitplan_integration_tests
     integration/auth_flow_test.cpp
+    integration/email_verification_flow_test.cpp
     integration/exercise_flow_test.cpp
     integration/exercise_note_flow_test.cpp
     integration/google_flow_test.cpp

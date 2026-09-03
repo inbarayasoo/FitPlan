@@ -12,6 +12,7 @@ enum class AuthErrorKind {
     kEmailAlreadyUsed,    // registration with a taken email
     kInvalidCredentials,  // wrong email or password, or missing/expired token
     kForbidden,           // authenticated, but the role is not allowed here
+    kEmailNotVerified,    // correct password, but the address is unconfirmed
 };
 
 // Thrown by AuthService for an expected, client-caused failure. Unexpected

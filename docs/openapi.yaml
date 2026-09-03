@@ -16,10 +16,15 @@ info:
     an object with `type`, `title`, `status`, and `detail`.
 
     Authentication is a JSON Web Token (HS256) passed as `Authorization: Bearer
-    <token>`. A token is returned by `POST /api/auth/register`,
+    <token>`. A token is returned by `POST /api/auth/verify-email`,
     `POST /api/auth/login` and `POST /api/auth/google`, and carries the caller's
     user id and role. Coach-only and trainee-only endpoints reject a valid token
     of the wrong role with 403.
+
+    An email + password sign-up receives **no token** from `POST /api/auth/register`:
+    it must confirm its address with the six-digit code that endpoint emails, via
+    `POST /api/auth/verify-email`, before it can log in. Google accounts are
+    verified by Google and skip this step.
   license:
     name: MIT
     url: https://github.com/inbarayasoo/FitPlan/blob/main/LICENSE
@@ -54,7 +59,11 @@ paths:
   /api/auth/register:
     post:
       tags: [Auth]
-      summary: Create an account and return a token
+      summary: Create an account and email a verification code
+      description: >
+        Creates an unverified email + password account and emails a six-digit
+        code to the address. No token is returned - the account cannot log in
+        until `POST /api/auth/verify-email` succeeds.
       operationId: postAuthRegister
       security: []
       requestBody:
@@ -65,13 +74,69 @@ paths:
               $ref: "#/components/schemas/RegisterRequest"
       responses:
         "201":
-          description: Account created.
+          description: Account created; a verification code was emailed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisteredOutcome"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /api/auth/verify-email:
+    post:
+      tags: [Auth]
+      summary: Confirm an address with its code and receive the first token
+      description: >
+        Checks the six-digit code for `email`. On success the account is marked
+        verified and this returns its first access token. The code expires ~10
+        minutes after it is issued and is invalidated after 5 wrong guesses.
+      operationId: postAuthVerifyEmail
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyEmailRequest"
+      responses:
+        "200":
+          description: Verified and authenticated.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthOutcome"
         "400": { $ref: "#/components/responses/BadRequest" }
-        "409": { $ref: "#/components/responses/Conflict" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "410": { $ref: "#/components/responses/Gone" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /api/auth/resend-verification:
+    post:
+      tags: [Auth]
+      summary: Send a fresh verification code
+      description: >
+        Emails a new code if one is due. Always answers 202, whether or not the
+        address exists, is already verified, or asked again within the 60-second
+        cooldown - the caller learns nothing about the account either way.
+      operationId: postAuthResendVerification
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResendVerificationRequest"
+      responses:
+        "202":
+          description: Request accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, example: accepted }
+        "400": { $ref: "#/components/responses/BadRequest" }
 
   /api/auth/login:
     post:
@@ -94,6 +159,7 @@ paths:
                 $ref: "#/components/schemas/AuthOutcome"
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/EmailNotVerified" }
 
   /api/auth/me:
     get:
@@ -671,6 +737,21 @@ components:
       content:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
+    EmailNotVerified:
+      description: The password is correct, but the account's email is not confirmed yet.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Gone:
+      description: The verification code has expired; request a new one.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    TooManyRequests:
+      description: The verification code hit its guess limit and is no longer usable.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
 
   schemas:
     Problem:
@@ -699,6 +780,11 @@ components:
           type: string
           enum: [local, google]
           description: How the account was created - email + password, or Google Sign-In.
+        email_verified:
+          type: boolean
+          description: >
+            True once the address is confirmed. Always true for Google accounts;
+            a local account starts false and can log in only after verification.
 
     RegisterRequest:
       type: object
@@ -715,6 +801,31 @@ components:
       properties:
         email: { type: string, format: email }
         password: { type: string, format: password }
+
+    VerifyEmailRequest:
+      type: object
+      required: [email, code]
+      properties:
+        email: { type: string, format: email }
+        code:
+          type: string
+          description: The six-digit code from the verification email.
+          example: "042317"
+
+    ResendVerificationRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+
+    RegisteredOutcome:
+      type: object
+      required: [verification_required, user]
+      properties:
+        verification_required:
+          type: boolean
+          description: Always true. A code was emailed; call `/api/auth/verify-email` next.
+        user: { $ref: "#/components/schemas/User" }
 
     GoogleLoginRequest:
       type: object

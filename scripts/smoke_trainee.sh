@@ -24,10 +24,18 @@ token_of() { sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p' "$1"; }
 first_id() { grep -o '"id":[0-9]\+' "$1" | head -1 | grep -o '[0-9]\+'; }
 nth_id() { grep -o '"id":[0-9]\+' "$2" | sed -n "${1}p" | grep -o '[0-9]\+'; }
 
-reg() { # email role name -> writes /tmp/fp_$3.json, echoes token
-  curl -s -o "/tmp/fp_$3.json" -X POST "${BASE}/api/auth/register" \
+# The verification code the server just "sent" to <email> (no Brevo key -> the
+# LogEmailSender writes the email body to the server log at warn level).
+code_for() { grep -A8 "to=<$1>" "$LOG" | grep -oE '^ +[0-9]{6}$' | tail -1 | tr -d ' '; }
+
+reg() { # email role name -> registers + verifies, writes the verify response to
+        # /tmp/fp_$3.json, echoes the token
+  curl -s -o /dev/null -X POST "${BASE}/api/auth/register" \
     -H 'Content-Type: application/json' \
     -d "{\"email\":\"$1\",\"password\":\"password123\",\"role\":\"$2\",\"display_name\":\"$3\"}"
+  curl -s -o "/tmp/fp_$3.json" -X POST "${BASE}/api/auth/verify-email" \
+    -H 'Content-Type: application/json' \
+    -d "{\"email\":\"$1\",\"code\":\"$(code_for "$1")\"}"
   token_of "/tmp/fp_$3.json"
 }
 

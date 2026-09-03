@@ -71,6 +71,7 @@ add_library(fitplan_lib STATIC
     src/dto/SessionDto.cpp
     src/dto/TraineeDto.cpp
     src/repositories/CoachTraineeRepository.cpp
+    src/repositories/EmailVerificationTokenRepository.cpp
     src/repositories/ExerciseNoteRepository.cpp
     src/repositories/ExerciseRepository.cpp
     src/repositories/PlanItemRepository.cpp
@@ -79,15 +80,20 @@ add_library(fitplan_lib STATIC
     src/repositories/SessionSetRepository.cpp
     src/repositories/UserRepository.cpp
     src/services/AuthService.cpp
+    src/services/BrevoEmailSender.cpp
+    src/services/EmailVerificationService.cpp
     src/services/GoogleIdTokenVerifier.cpp
     src/services/GoogleJwks.cpp
+    src/services/LogEmailSender.cpp
     src/services/PlanService.cpp
     src/services/ProgressService.cpp
     src/services/SessionService.cpp
+    src/util/Clock.cpp
     src/util/Hashing.cpp
     src/util/Jwt.cpp
     src/util/RsaKey.cpp
-    src/util/Validation.cpp)
+    src/util/Validation.cpp
+    src/util/VerificationCode.cpp)
 
 target_include_directories(fitplan_lib PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src"

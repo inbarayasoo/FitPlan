@@ -22,14 +22,17 @@ bool is_valid_role(const std::string& role) {
 }  // namespace
 
 AuthService::AuthService(repositories::UserRepository& users, std::string jwt_secret,
-                         std::int64_t jwt_ttl_seconds, const GoogleIdTokenVerifier* google_verifier)
+                         std::int64_t jwt_ttl_seconds, const GoogleIdTokenVerifier* google_verifier,
+                         EmailVerificationService* email_verification)
     : users_(users),
       jwt_secret_(std::move(jwt_secret)),
       jwt_ttl_seconds_(jwt_ttl_seconds),
-      google_verifier_(google_verifier) {}
+      google_verifier_(google_verifier),
+      email_verification_(email_verification) {}
 
-AuthOutcome AuthService::register_user(const std::string& email, const std::string& password,
-                                       const std::string& role, const std::string& display_name) {
+RegisterOutcome AuthService::register_user(const std::string& email, const std::string& password,
+                                           const std::string& role,
+                                           const std::string& display_name) {
     if (email.empty() || password.empty() || display_name.empty()) {
         throw AuthError(AuthErrorKind::kInvalidInput,
                         "email, password and display_name are required");
@@ -51,7 +54,10 @@ AuthOutcome AuthService::register_user(const std::string& email, const std::stri
     to_create.display_name = display_name;
 
     const models::User created = users_.create(to_create);
-    return {created, sign_token_for(created)};
+    if (email_verification_ != nullptr) {
+        email_verification_->start_for(created);
+    }
+    return {created, true};
 }
 
 AuthOutcome AuthService::login(const std::string& email, const std::string& password) {
@@ -59,7 +65,25 @@ AuthOutcome AuthService::login(const std::string& email, const std::string& pass
     if (!user.has_value() || !util::verify_password(user->password_hash, password)) {
         throw AuthError(AuthErrorKind::kInvalidCredentials, "invalid email or password");
     }
+    if (user->auth_provider == "local" && !user->email_verified) {
+        throw AuthError(AuthErrorKind::kEmailNotVerified,
+                        "verify your email address before signing in");
+    }
     return {*user, sign_token_for(*user)};
+}
+
+AuthOutcome AuthService::verify_email(const std::string& email, const std::string& code) {
+    if (email_verification_ == nullptr) {
+        throw AuthError(AuthErrorKind::kInvalidInput, "email verification is not enabled");
+    }
+    const models::User user = email_verification_->verify(email, code);
+    return {user, sign_token_for(user)};
+}
+
+void AuthService::resend_verification(const std::string& email) {
+    if (email_verification_ != nullptr) {
+        email_verification_->resend(email);
+    }
 }
 
 GoogleLoginResult AuthService::login_with_google(const std::string& id_token,
@@ -113,6 +137,7 @@ GoogleLoginResult AuthService::login_with_google(const std::string& id_token,
     to_create.display_name = identity->name.empty() ? identity->email : identity->name;
     to_create.auth_provider = "google";
     to_create.google_sub = identity->subject;
+    to_create.email_verified = identity->email_verified;  // Google already vouched for it
 
     const models::User created = users_.create(to_create);
     return {false, {created, sign_token_for(created)}};

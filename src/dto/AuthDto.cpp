@@ -37,6 +37,7 @@ json user_to_json(const models::User& u) {
         {"display_name", u.display_name},
         {"created_at", u.created_at},
         {"auth_provider", u.auth_provider},
+        {"email_verified", u.email_verified},
     };
 }
 
@@ -77,6 +78,21 @@ GoogleLoginRequest parse_google_login_request(const std::string& body) {
     return req;
 }
 
+VerifyEmailRequest parse_verify_email_request(const std::string& body) {
+    const json obj = parse_object_or_throw(body);
+    return VerifyEmailRequest{
+        required_string(obj, "email"),
+        required_string(obj, "code"),
+    };
+}
+
+ResendVerificationRequest parse_resend_verification_request(const std::string& body) {
+    const json obj = parse_object_or_throw(body);
+    return ResendVerificationRequest{
+        required_string(obj, "email"),
+    };
+}
+
 crow::response auth_response(int status, const services::AuthOutcome& outcome) {
     return json_response(status, json{
                                      {"access_token", outcome.access_token},
@@ -86,6 +102,17 @@ crow::response auth_response(int status, const services::AuthOutcome& outcome) {
 
 crow::response user_response(int status, const models::User& user) {
     return json_response(status, user_to_json(user));
+}
+
+crow::response registered_response(const services::RegisterOutcome& outcome) {
+    return json_response(201, json{
+                                  {"verification_required", outcome.verification_required},
+                                  {"user", user_to_json(outcome.user)},
+                              });
+}
+
+crow::response accepted_response() {
+    return json_response(202, json{{"status", "accepted"}});
 }
 
 crow::response config_response(const std::string& google_client_id) {

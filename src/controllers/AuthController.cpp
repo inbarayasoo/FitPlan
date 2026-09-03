@@ -11,6 +11,7 @@
 #include "middleware/JwtAuthMiddleware.hpp"
 #include "models/User.hpp"
 #include "services/AuthError.hpp"
+#include "services/EmailVerificationError.hpp"
 #include "util/Jwt.hpp"
 
 namespace fitplan::controllers {
@@ -30,8 +31,52 @@ crow::response problem_from(const services::AuthError& err) {
             return http::problem_response(401, "Authentication failed", err.what());
         case services::AuthErrorKind::kForbidden:
             return http::problem_response(403, "Forbidden", err.what());
+        case services::AuthErrorKind::kEmailNotVerified:
+            return http::problem_response(403, "Email not verified", err.what());
     }
     return http::problem_response(500, "Internal server error", "unhandled error kind");
+}
+
+crow::response problem_from(const services::EmailVerificationError& err) {
+    switch (err.kind()) {
+        case services::EmailVerificationErrorKind::kNotPending:
+            return http::problem_response(404, "No verification pending", err.what());
+        case services::EmailVerificationErrorKind::kCodeExpired:
+            return http::problem_response(410, "Code expired", err.what());
+        case services::EmailVerificationErrorKind::kTooManyAttempts:
+            return http::problem_response(429, "Too many attempts", err.what());
+        case services::EmailVerificationErrorKind::kCodeMismatch:
+            return http::problem_response(400, "Incorrect code", err.what());
+    }
+    return http::problem_response(500, "Internal server error", "unhandled error kind");
+}
+
+// Extracted so register_auth_routes stays a flat list of route registrations
+// (each route's own try/catch would otherwise pile up its cognitive complexity).
+crow::response handle_verify_email(services::AuthService& auth, const crow::request& req) {
+    try {
+        const dto::VerifyEmailRequest body = dto::parse_verify_email_request(req.body);
+        return dto::auth_response(200, auth.verify_email(body.email, body.code));
+    } catch (const services::EmailVerificationError& err) {
+        return problem_from(err);
+    } catch (const services::AuthError& err) {
+        return problem_from(err);
+    } catch (const std::exception& ex) {
+        return http::problem_response(500, "Internal server error", ex.what());
+    }
+}
+
+crow::response handle_resend_verification(services::AuthService& auth, const crow::request& req) {
+    try {
+        const dto::ResendVerificationRequest body =
+            dto::parse_resend_verification_request(req.body);
+        auth.resend_verification(body.email);
+        return dto::accepted_response();
+    } catch (const services::AuthError& err) {
+        return problem_from(err);
+    } catch (const std::exception& ex) {
+        return http::problem_response(500, "Internal server error", ex.what());
+    }
 }
 
 }  // namespace
@@ -42,15 +87,23 @@ void register_auth_routes(app::FitPlanApp& app, services::AuthService& auth,
         .methods(crow::HTTPMethod::Post)([&auth](const crow::request& req) {
             try {
                 const dto::RegisterRequest body = dto::parse_register_request(req.body);
-                const services::AuthOutcome outcome =
+                const services::RegisterOutcome outcome =
                     auth.register_user(body.email, body.password, body.role, body.display_name);
-                return dto::auth_response(201, outcome);
+                return dto::registered_response(outcome);
             } catch (const services::AuthError& err) {
                 return problem_from(err);
             } catch (const std::exception& ex) {
                 return http::problem_response(500, "Internal server error", ex.what());
             }
         });
+
+    CROW_ROUTE(app, "/api/auth/verify-email")
+        .methods(crow::HTTPMethod::Post)(
+            [&auth](const crow::request& req) { return handle_verify_email(auth, req); });
+
+    CROW_ROUTE(app, "/api/auth/resend-verification")
+        .methods(crow::HTTPMethod::Post)(
+            [&auth](const crow::request& req) { return handle_resend_verification(auth, req); });
 
     CROW_ROUTE(app, "/api/auth/login")
         .methods(crow::HTTPMethod::Post)([&auth](const crow::request& req) {

@@ -56,6 +56,10 @@ Config Config::from_env() {
     cfg.web_dir = env_or("FITPLAN_WEB_DIR", cfg.web_dir);
     cfg.docs_dir = env_or("FITPLAN_DOCS_DIR", cfg.docs_dir);
     cfg.google_client_id = env_or("FITPLAN_GOOGLE_CLIENT_ID", cfg.google_client_id);
+    cfg.brevo_api_key = env_or("FITPLAN_BREVO_API_KEY", cfg.brevo_api_key);
+    cfg.email_from = env_or("FITPLAN_EMAIL_FROM", cfg.email_from);
+    cfg.email_from_name = env_or("FITPLAN_EMAIL_FROM_NAME", cfg.email_from_name);
+    cfg.public_base_url = env_or("FITPLAN_PUBLIC_BASE_URL", cfg.public_base_url);
     return cfg;
 }
 
@@ -65,6 +69,10 @@ bool Config::uses_insecure_jwt_secret() const {
 
 bool Config::google_sign_in_enabled() const {
     return !google_client_id.empty();
+}
+
+bool Config::transactional_email_enabled() const {
+    return !brevo_api_key.empty();
 }
 
 }  // namespace fitplan

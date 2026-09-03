@@ -73,6 +73,33 @@ body {
   flex: 1;
 }
 
+/* Email verification -------------------------------------------------- */
+.verify-title {
+  margin: 0 0 8px;
+}
+
+.verify-lead {
+  margin: 0 0 20px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+#verify-form input[name="code"] {
+  letter-spacing: 6px;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.verify-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.verify-actions button {
+  flex: 1;
+}
+
 /* Top bar ---------------------------------------------------------------- */
 .topbar {
   display: flex;
