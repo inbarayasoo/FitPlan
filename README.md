@@ -11,9 +11,6 @@ weekly streak).
 One process, one SQLite file, no external services. A small vanilla-JS frontend
 is served by the same server.
 
-**Live:** <https://fitplan-web.fly.dev> &middot; API docs (Swagger UI):
-<https://fitplan-web.fly.dev/docs>
-
 ## Screenshots
 
 <table>
